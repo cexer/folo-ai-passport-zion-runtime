@@ -6,6 +6,15 @@ int zion_menu_row_y(int row) {return 40+row*38;}
 bool zion_menu_install_qr(zion_page_t page,bool busy,unsigned stage,bool dismissed) {
     return page==ZION_INSTALL && !busy && (dismissed || (stage!=100 && stage!=255));
 }
+bool zion_menu_install_complete(zion_page_t page,bool busy,unsigned stage,bool dismissed) {
+    return page==ZION_INSTALL && !busy && stage==100 && !dismissed;
+}
+int zion_menu_installed_target(const int *slots,int count,int installed_slot) {
+    /* Runtime packages use negative slot IDs; only -1 means no result. */
+    if(!slots || installed_slot==-1) return -1;
+    for(int i=0;i<count;i++) if(slots[i]==installed_slot) return i;
+    return -1;
+}
 bool zion_key_dispatch(unsigned *swallowed,unsigned key,zion_key_phase_t phase,bool cancelled_startup) {
     if(key>ZION_OK) return false;
     unsigned bit=1u<<key;

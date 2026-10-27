@@ -2,14 +2,16 @@
 
 # ZION shared runtime and native ELF experiments
 
+Current synchronization and layout: [runtime 0.5.1](online-sync-051.md).
+
 Historical 0.2.0 embedded-example notes follow. For the current external-package
 implementation and real-device scope, use [runtime-applications.md](runtime-applications.md).
 
 Local checkout: `folo-ai-passport-zion-runtime`, branch `feature/shared-runtime`.
 The source snapshot came from `zion-with-xiaozhi` (Git base
 `f0e2e28d4a04a287d48bb3d9ace06b1f93c60661`, including its uncommitted work).
-The production checkout and original experiment were preserved. No GitHub fork,
-commit, push or community publication was performed.
+The production checkout and original experiment were preserved. The initial
+experiment below predates GitHub publication; see the current checkpoint above.
 
 ## Runtime model
 

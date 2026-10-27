@@ -1,4 +1,4 @@
-CONFIG_ZION_FACTORY_SIZE=2957312
+CONFIG_ZION_FACTORY_SIZE=3416064
 CONFIG_ESP_WIFI_DPP_SUPPORT=y
 # Passport OS uses real DFS/light-sleep locks; these must match the SDK build.
 # Enabling PM leaves automatic light sleep off until an application opts in.

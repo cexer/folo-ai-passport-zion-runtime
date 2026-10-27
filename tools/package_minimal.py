@@ -118,7 +118,10 @@ def package(build, merged_path, output, profile):
         assert b'RETURN restart=1 destination=list' not in app, 'Obsolete OK restart handler'
         for marker in [b'GALLERY_VALIDATED format=FGA1',b'DEMO_SAVE value=',b'SOUNDLAB_GOLDEN_PASS',b'NESCPU_GOLDEN_PASS']:
             assert marker not in app, 'Test applications must be external: '+marker.decode()
-        assert part['size'] == 0x260000
+        app_config = (build / 'config/sdkconfig.h').read_text()
+        app_factory = re.search(r'^#define CONFIG_ZION_FACTORY_SIZE (\d+)$', app_config, re.M)
+        assert app_factory and part['size'] == int(app_factory[1]), 'APP factory geometry differs from table'
+        assert part['offset'] + part['size'] <= 0x356000, 'Factory overlaps identity'
         boot_config = (build / 'bootloader/config/sdkconfig.h').read_text()
         boot_size = re.search(r'^#define CONFIG_ZION_FACTORY_SIZE (\d+)$', boot_config, re.M)
         assert boot_size and int(boot_size[1]) == part['size'], 'Bootloader factory geometry differs from APP/table'

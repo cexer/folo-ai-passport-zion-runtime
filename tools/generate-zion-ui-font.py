@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate 4-bpp product UI subsets; keep the full 1-bpp font as fallback.
+"""Generate 4-bpp product UI subsets; keep the full 4-bpp font as fallback.
 
 python tools/generate-zion-ui-font.py FONT.ttf LV_FONT_CONV.js [FONTTOOLS_DIRECTORY]
 The pinned source, license and converter match generate-zion-font.py.
@@ -73,7 +73,7 @@ def generate(source,converter,fonttools=None):
     inventory+='\n'.join('    '+','.join(f'0x{ord(c):x}' for c in symbols[i:i+12])+',' for i in range(0,len(symbols),12))
     inventory+='\n};\n'
     (ROOT/'assets/fonts/zion_font_ui_inventory.h').write_text(inventory,encoding='utf8',newline='\n')
-    print(f'Generated UI fonts: {len(symbols)} characters at 14px/4bpp, 95 ASCII at 10px/4bpp; full 1bpp fallback retained')
+    print(f'Generated UI fonts: {len(symbols)} characters at 14px/4bpp, 95 ASCII at 10px/4bpp; full 4bpp fallback retained')
 
 
 if __name__=='__main__':

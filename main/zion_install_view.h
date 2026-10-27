@@ -19,5 +19,6 @@ typedef struct {
     int cleanup_error;
 } zion_install_info_t;
 const char *zion_install_reason(const char *detail);
+uint32_t zion_install_color(unsigned stage);
 void zion_install_format(char *out,size_t capacity,const zion_install_info_t *info,
                          unsigned stage,unsigned percent,const char *detail);

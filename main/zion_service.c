@@ -156,8 +156,10 @@ static atomic_bool s_test_hold_boot;
 
 #if CONFIG_ZION_592_INSTALL
 static bool install_autoboot_allowed(void) {
-#if CONFIG_ZION_LAUNCHER && CONFIG_META_E2E_TEST_CONTROL
-    return !atomic_load(&s_test_hold_boot);
+#if CONFIG_ZION_LAUNCHER
+    /* Keep BLE and the manager alive for another installation. Only a device
+     * OK action may launch the completed app, including after protocol cmd 4. */
+    return false;
 #else
     return true;
 #endif
@@ -977,7 +979,7 @@ void zion_service_get(zion_service_state_t *v) {
     v->state=s_status.state;v->error=s_status.error;v->stage=s_install_stage;v->percent=s_percent;
     v->generation=s_generation;v->result=s_result;v->prefs=s_prefs;v->skip_autostart=s_skip_autostart;
 #if CONFIG_ZION_592_INSTALL
-    v->install=s_install_info;v->install_id=s_install_id;
+    v->install=s_install_info;v->install_id=s_install_id;v->installed_slot=s_installed_slot;
     if(v->busy && (v->stage==30 || v->stage==10) && v->install.elapsed_ms && s_install_update_us && now>s_install_update_us) {
         v->install.elapsed_ms+=(uint32_t)((now-s_install_update_us)/1000);
         uint32_t received=v->stage==30?v->install.received_bytes:v->install.layout_bytes;
@@ -1072,12 +1074,15 @@ void zion_service_native_handoff(bool keep_network,bool keep_bluetooth,bool owns
     ESP_LOGI(TAG,"NATIVE_HANDOFF network=%d heap_before=%u heap_after=%lu",keep_network,before,(unsigned long)esp_get_free_heap_size());
 }
 static uint32_t s_package_footprint;
+void zion_service_package_installed(int slot) {
+    portENTER_CRITICAL(&s_lock);s_installed_slot=slot;portEXIT_CRITICAL(&s_lock);
+}
 void zion_service_package_footprint(uint32_t bytes) {
     portENTER_CRITICAL(&s_lock);s_package_footprint=bytes;portEXIT_CRITICAL(&s_lock);
 }
 void zion_service_package_progress(const char *name,uint32_t received,uint32_t total,int status,const char *detail) {
     portENTER_CRITICAL(&s_lock);
-    if(received==0 && status==0) {s_install_id++;memset(&s_install_info,0,sizeof(s_install_info));s_package_footprint=0;}
+    if(received==0 && status==0) {s_install_id++;s_installed_slot=-1;memset(&s_install_info,0,sizeof(s_install_info));s_package_footprint=0;}
     s_install_stage=status<0?255:status>0?100:30;
     s_percent=status>0?100:total?(unsigned)((uint64_t)received*100/total):0;
     s_install_info.package_bytes=total;s_install_info.received_bytes=received;

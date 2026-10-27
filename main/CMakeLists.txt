@@ -70,7 +70,7 @@ if(CONFIG_ZION_592_PROBE OR CONFIG_ZION_LAUNCHER)
         endif()
         target_sources(${COMPONENT_LIB} PRIVATE "zion_package.c" "zion_package_format.c" "zion_elf.c" "zion_elf_host.c" "zion_runtime.c" "zion_runtime_model.c" "zion_runtime_view.cc" "zion_launcher.c" "zion_menu.c" "zion_manage.c" "zion_prefs.c" "zion_policy.c" "zion_wifi.c" "zion_form.c" "../assets/images/folo_mini_code_208.c")
         target_sources(${COMPONENT_LIB} PRIVATE "zion_portal.c" "zion_portal_net.c")
-
+        target_sources(${COMPONENT_LIB} PRIVATE "../assets/fonts/zion_font_ui_14.c" "../assets/fonts/zion_font_ui_10.c")
         if(CONFIG_META_E2E_TEST_CONTROL)
             target_sources(${COMPONENT_LIB} PRIVATE "../tests/firmware/zion_font_selftest.c")
         endif()

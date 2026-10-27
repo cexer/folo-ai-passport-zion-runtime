@@ -165,7 +165,9 @@ int zion_package_receive(uint32_t total) {
 done:
     if(touched && !committed) (void)esp_flash_erase_region(NULL,offset,extent);
     if(storage_touched && !committed) (void)esp_flash_erase_region(NULL,storage_offset,storage_extent);
-    free(buffer);free(next);meta_carve_flash_workspace_release();zion_service_native_release();
+    free(buffer);free(next);meta_carve_flash_workspace_release();
+    if(result==0) {zion_package_refresh();zion_service_package_installed(zion_package_slot_for_id(p.id));}
+    zion_service_native_release();
     zion_service_package_progress(NULL,received,total,result==0?1:-1,result==0?"installed":stage);
     control_reply("ZION_UPLOAD_DONE result=%d stage=%s received=%lu total=%lu\n",result,stage,(unsigned long)received,(unsigned long)total);fflush(stdout);return result;
 }
@@ -236,7 +238,9 @@ done:
         esp_err_t cleanup=meta_carve_flash_erase_data(UINT32_MAX,"zp_stage");
         if(cleanup!=ESP_OK) ESP_LOGE("zion-package","STAGE_CLEANUP result=%d",(int)cleanup);
     }
-    free(buffer);free(next);meta_carve_flash_workspace_release();zion_service_native_release();
+    free(buffer);free(next);meta_carve_flash_workspace_release();
+    if(result==0) zion_service_package_installed(slot);
+    zion_service_native_release();
     zion_service_package_progress(NULL,received,total,result==0?1:-1,result==0?"installed":stage);
     control_reply("ZION_UPLOAD_DONE result=%d kind=legacy slot=%d stage=%s\n",result,slot,stage);fflush(stdout);return result;
 }

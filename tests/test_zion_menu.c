@@ -2,6 +2,17 @@
 #include <assert.h>
 #include <stdio.h>
 int main(void) {
+    assert(zion_menu_install_complete(ZION_INSTALL,false,100,false));
+    assert(!zion_menu_install_complete(ZION_INSTALL,true,100,false));
+    assert(!zion_menu_install_complete(ZION_INSTALL,false,255,false));
+    assert(!zion_menu_install_complete(ZION_INSTALL,false,100,true));
+    int reordered[]={4,1,7};
+    assert(zion_menu_installed_target(reordered,3,1)==1);
+    assert(zion_menu_installed_target(reordered,3,8)==-1);
+    assert(zion_menu_installed_target(NULL,0,-1)==-1);
+    int packages[]={-100,3,-101};
+    assert(zion_menu_installed_target(packages,3,-101)==2);
+    assert(zion_menu_installed_target(packages,3,-1)==-1);
     assert(zion_menu_install_qr(ZION_INSTALL,false,0,true));
     assert(zion_menu_install_qr(ZION_INSTALL,false,255,true));
     assert(!zion_menu_install_qr(ZION_INSTALL,false,255,false));

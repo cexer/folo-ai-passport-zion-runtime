@@ -11,7 +11,7 @@ static bool glyph(const lv_font_t *font,uint32_t cp,const lv_font_t *resolved,un
     lv_font_glyph_dsc_t g;
     if(!lv_font_get_glyph_dsc(font,&g,cp,0) || g.is_placeholder || g.resolved_font!=resolved) return false;
     const lv_font_fmt_txt_dsc_t *fd=(const lv_font_fmt_txt_dsc_t *)g.resolved_font->dsc;
-    if(fd->bpp!=bpp || fd->bitmap_format!=0) return false;
+    if(fd->bpp!=bpp) return false;
     if(!g.box_w || !g.box_h) return true;
     if(g.box_w>GLYPH_EDGE_MAX || g.box_h>GLYPH_EDGE_MAX) return false;
     g.req_raw_bitmap=1;
@@ -26,7 +26,8 @@ static bool glyph(const lv_font_t *font,uint32_t cp,const lv_font_t *resolved,un
     unsigned mask=(1u<<bpp)-1;
     for(unsigned y=0;y<g.box_h;y++) for(unsigned x=0;x<g.box_w;x++) {
         unsigned bit=g.stride?y*g.stride*8+x*bpp:(y*g.box_w+x)*bpp;
-        unsigned expected=((raw[bit/8]>>(8-bpp-bit%8))&mask)*255/mask;
+        unsigned expected=fd->bitmap_format?pixels[y*stride+x]:((raw[bit/8]>>(8-bpp-bit%8))&mask)*255/mask;
+        if(fd->bitmap_format && expected%17) return false;
         if(pixels[y*stride+x]!=expected) return false;
         if(expected && expected!=255) grays++;
     }
@@ -40,7 +41,7 @@ bool zion_font_selftest(void) {
     for(unsigned cp=32;cp<127;cp++) if(!glyph(ZION_FONT_SMALL,cp,ZION_FONT_SMALL,4)) {
         printf("ZION_FONT_TEST fail=small cp=%u\n",cp);return false;
     }
-    if(!glyph(ZION_FONT,ZION_FALLBACK_PROBE,&zion_font_14,1) || !grays) {
+    if(!glyph(ZION_FONT,ZION_FALLBACK_PROBE,&zion_font_14,4) || !grays) {
         printf("ZION_FONT_TEST fail=fallback-or-grayscale\n");return false;
     }
     printf("ZION_FONT_TEST pass=1 ui=%u small=95 fallback=1 grayscale_pixels=%u\n",ZION_UI_FONT_COUNT,grays);

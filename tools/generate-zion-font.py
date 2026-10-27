@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a compact, uncompressed 1-bpp font with lv_font_conv 1.5.3.
+"""Generate a compact, compressed 4-bpp font with lv_font_conv 1.5.3.
 
 Usage: python tools/generate-zion-font.py FONT.ttf LV_FONT_CONV.js [FONTTOOLS_DIRECTORY]
 Source: google/fonts ofl/notosanssc, SIL OFL 1.1 (see assets/fonts).
@@ -39,7 +39,7 @@ chars.update('，。：；？！、（）【】《》—·')
 symbols = ''.join(sorted(chars))
 out = root / 'assets/fonts/zion_font_14.c'
 subprocess.run(['node', str(converter), '--font', str(font), '--symbols', symbols,
-                '--size', '14', '--bpp', '1', '--format', 'lvgl', '--no-compress',
+                '--size', '14', '--bpp', '4', '--format', 'lvgl',
                 '--no-kerning', '--lv-font-name', 'zion_font_14', '--lv-include', 'lvgl.h',
                 '--output', str(out)], check=True)
 code = out.read_text(encoding='utf-8')
@@ -48,12 +48,12 @@ lines = [line for line in code.splitlines() if ' * Opts:' not in line]
 out.write_text('\n'.join(lines) + '\n', encoding='utf-8')
 (root / 'assets/fonts/coverage.txt').write_text(symbols, encoding='utf-8')
 (root / 'assets/fonts/zion-font-manifest.json').write_text(json.dumps({
-    'converter': 'lv_font_conv 1.5.3', 'size': 14, 'bpp': 1,
+    'converter': 'lv_font_conv 1.5.3', 'size': 14, 'bpp': 4, 'compressed': True,
     'characters': len(chars), 'source_sha256': hashlib.sha256(source_font.read_bytes()).hexdigest(),
     'source_axis_defaults':font_defaults, 'resolved_weight':600,
     'source_url': 'https://github.com/google/fonts/tree/main/ofl/notosanssc',
     'license': 'SIL OFL 1.1', 'c_sha256': hashlib.sha256(out.read_bytes()).hexdigest()
 }, indent=2), encoding='utf-8')
-print('Generated font:', len(chars), 'characters; 1 bpp, no kerning, no compression')
+print('Generated font:', len(chars), 'characters; 4 bpp, no kerning, compressed')
 
 font_temp.cleanup()

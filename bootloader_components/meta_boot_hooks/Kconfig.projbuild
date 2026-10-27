@@ -2,5 +2,5 @@ menu "Zion firmware layout"
     config ZION_FACTORY_SIZE
         int "Zion factory application bytes"
         default 1507328
-        range 1507328 2097152
+        range 1507328 3432448
 endmenu

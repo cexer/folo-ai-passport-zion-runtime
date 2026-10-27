@@ -8,6 +8,7 @@ typedef struct {
     bool busy,online,connected,ap,skip_autostart;
     unsigned state,error,percent,stage,generation;
     unsigned install_id;
+    int installed_slot; /* Exact completed installation, never current selection. */
     zion_install_info_t install;
     esp_err_t result;
     char detail[64],ap_name[33],ap_password[9];
@@ -22,6 +23,7 @@ void zion_service_native_handoff(bool keep_network,bool keep_bluetooth,bool owns
 void zion_service_native_control(const char *line);
 void zion_service_package_progress(const char *name,uint32_t received,uint32_t total,int status,const char *detail);
 void zion_service_package_footprint(uint32_t bytes);
+void zion_service_package_installed(int slot);
 void zion_launcher_init(void);
 void zion_launcher_suspend(void);
 void zion_launcher_key(zion_input_t key);

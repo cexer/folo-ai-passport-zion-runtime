@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <string.h>
 int main(void) {
+    assert(zion_install_color(30)==0xEACD62u);
+    assert(zion_install_color(100)==0x6FD18Cu);
+    assert(zion_install_color(255)==0xE43B2Fu);
     char text[640];
     zion_install_info_t info={.package_bytes=7616468,.phase=10};
     zion_install_format(text,sizeof(text),&info,10,0,"preflight");
@@ -11,7 +14,7 @@ int main(void) {
     zion_install_format(text,sizeof(text),&info,30,57,"writing");
     assert(strstr(text,"随身小智") && strstr(text,"4.29 MiB") && strstr(text,"57%"));
     zion_install_format(text,sizeof(text),&info,100,100,"installed");
-    assert(strstr(text,"安装成功") && !strstr(text,"即将启动"));
+    assert(strstr(text,"安装完成") && !strstr(text,"即将启动"));
     info.cleanup=1;
     zion_install_format(text,sizeof(text),&info,255,57,"package-sha256");
     assert(strstr(text,"空间已回收") && strstr(text,"SHA256"));

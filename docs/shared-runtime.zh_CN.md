@@ -2,13 +2,15 @@
 
 # ZION 公共运行时与原生 ELF 实验
 
+当前同步与分区说明：[runtime 0.5.1](online-sync-051.zh_CN.md)。
+
 以下是 0.2.0 内置示例的历史说明。当前外部包实现和真机验证范围请先阅读
 [runtime-applications.zh_CN.md](runtime-applications.zh_CN.md)。
 
 本地目录 `folo-ai-passport-zion-runtime`，分支 `feature/shared-runtime`。
 继承 `zion-with-xiaozhi` 的工作区快照（Git 基点
 `f0e2e28d4a04a287d48bb3d9ace06b1f93c60661`，包含其未提交修改）。
-原实验目录、正式项目均保留；没有创建 GitHub fork、提交、推送或发布。
+原实验目录、正式项目均保留。下方初始实验发生在 GitHub 发布之前，当前状态以上方说明为准。
 
 ## 运行方式
 

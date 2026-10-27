@@ -175,3 +175,6 @@ CONFIG_ZION_LAUNCHER=y
 
 # Verify certificates during TLS, then release the peer chain before body reception.
 CONFIG_MBEDTLS_SSL_KEEP_PEER_CERTIFICATE=n
+
+# 4bpp full Chinese fallback stays in the existing factory partition.
+CONFIG_LV_USE_FONT_COMPRESSED=y

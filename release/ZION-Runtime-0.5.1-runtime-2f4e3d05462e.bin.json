@@ -1,0 +1,136 @@
+{
+  "profile": "zion-runtime",
+  "version": "0.5.1-runtime",
+  "chip": "esp32c3",
+  "idf": "v6.0.1",
+  "flash_offset": "0x0",
+  "app_offset": "0x10000",
+  "app_bytes": 3387632,
+  "firmware_bytes": 3453168,
+  "firmware_sha256": "2f4e3d05462e5214a1da028289a434f324eebad6bea1840fdc53d40462296f26",
+  "elf_sha256": "4dc4645e8badd32983f63a10e7ad1eaba672f42b1a581c8eddf35e0c216e7f8c",
+  "plugins": [],
+  "partitions": [
+    {
+      "type": 1,
+      "subtype": 2,
+      "offset": 36864,
+      "size": 24576,
+      "label": "nvs"
+    },
+    {
+      "type": 1,
+      "subtype": 1,
+      "offset": 61440,
+      "size": 4096,
+      "label": "phy_init"
+    },
+    {
+      "type": 0,
+      "subtype": 0,
+      "offset": 65536,
+      "size": 3416064,
+      "label": "factory"
+    },
+    {
+      "type": 1,
+      "subtype": 64,
+      "offset": 3481600,
+      "size": 16384,
+      "label": "pool_0"
+    },
+    {
+      "type": 1,
+      "subtype": 2,
+      "offset": 3497984,
+      "size": 16384,
+      "label": "cardid"
+    },
+    {
+      "type": 1,
+      "subtype": 2,
+      "offset": 3514368,
+      "size": 24576,
+      "label": "store"
+    },
+    {
+      "type": 1,
+      "subtype": 64,
+      "offset": 3538944,
+      "size": 4841472,
+      "label": "pool_1"
+    },
+    {
+      "type": 1,
+      "subtype": 0,
+      "offset": 8380416,
+      "size": 8192,
+      "label": "otadata"
+    }
+  ],
+  "archive": "F:\\Develop\\project\\tools\\ai-passport\\apps\\zion-runtime\\firmware\\dist\\zion-runtime\\2f4e3d05462e",
+  "validation": "ESP checksum/SHA, partition MD5/bounds/overlap, ELF and flash segment match",
+  "hardware_validation": false,
+  "artifacts": {
+    "app.bin": {
+      "bytes": 3387632,
+      "sha256": "a70e1aa17ef076e3de16efdc73fc87934969fe842fa14178f408e4553ad61e80"
+    },
+    "app.elf": {
+      "bytes": 35790432,
+      "sha256": "4dc4645e8badd32983f63a10e7ad1eaba672f42b1a581c8eddf35e0c216e7f8c"
+    },
+    "app.map": {
+      "bytes": 20031807,
+      "sha256": "6778a34c4c110c0c0aa79d87782640a2c285afc6c6a6bb4f82f53582cff3da65"
+    },
+    "bootloader.bin": {
+      "bytes": 25792,
+      "sha256": "31c790cdf39d90d1fa9ab3b730bf0517c46bb9eea5f93e6de41f23dfe30cd117"
+    },
+    "bootloader.elf": {
+      "bytes": 643048,
+      "sha256": "861655559f039f5f35ad9369c20b03716ddbc6926057f12a24add351bfcc046f"
+    },
+    "bootloader.map": {
+      "bytes": 512083,
+      "sha256": "337cd4309051967555b8e9f65ae237441593d03d68fd6652eda17d0cb9e15c2a"
+    },
+    "firmware.bin": {
+      "bytes": 3453168,
+      "sha256": "2f4e3d05462e5214a1da028289a434f324eebad6bea1840fdc53d40462296f26"
+    },
+    "flasher_args.json": {
+      "bytes": 1099,
+      "sha256": "a2bc0171ba64b7d1c63508939960d822fb30fd1a2bd9e97aea260eec5b8fa8e1"
+    },
+    "flash_args": {
+      "bytes": 191,
+      "sha256": "7cc2f763a24a42835cf81098e5d8bcb0068474aa78fed58bd535056aa1762762"
+    },
+    "FoloToy-AI-Passport.bin": {
+      "bytes": 3387632,
+      "sha256": "a70e1aa17ef076e3de16efdc73fc87934969fe842fa14178f408e4553ad61e80"
+    },
+    "ota_data_initial.bin": {
+      "bytes": 8192,
+      "sha256": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f"
+    },
+    "partitions.bin": {
+      "bytes": 3072,
+      "sha256": "32ea0c851f4b0145c3961910d87935ebab30d919010ef6e5fed8319fd4ff6f99"
+    },
+    "sdkconfig": {
+      "bytes": 124259,
+      "sha256": "534d98539ba8b321c1c8866cd63511b04dcf4f271405c846849510098c35542e"
+    },
+    "bootloader\\bootloader.bin": {
+      "bytes": 25792,
+      "sha256": "31c790cdf39d90d1fa9ab3b730bf0517c46bb9eea5f93e6de41f23dfe30cd117"
+    },
+    "partition_table\\partition-table.bin": {
+      "bytes": 3072,
+      "sha256": "32ea0c851f4b0145c3961910d87935ebab30d919010ef6e5fed8319fd4ff6f99"
+    }
+  }
+}

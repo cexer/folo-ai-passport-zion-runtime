@@ -25,8 +25,8 @@ and the public FoloToy 592 v4 protocol. Identity is maintained in
 ## Runtime ownership
 
 The native UI uses uncompressed 14px/4-bpp glyphs; battery text uses 10px/4-bpp
-ASCII. The row number/size/version line retains its original Unscii 8 font.
-A complete 6,873-character 14px/1-bpp font
+ASCII, also used by the row number/size/version line.
+A complete 6,873-character, losslessly compressed 14px/4-bpp font
 remains the fallback for external names. `main/zion_fonts.h` centralizes widget
 selection. The UI subset is derived from launcher/text/install-view literals;
 host checks require regeneration after adding characters. Test firmware resolves

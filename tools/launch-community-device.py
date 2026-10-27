@@ -36,7 +36,7 @@ def state():
     send('ZION STATE');return {k:int(v) for k,v in re.findall(r'(\w+)=(-?\d+)',wait('ZION_UI page='))}
 try:
     d=state()
-    if d['page']==5:key('OK');d=state()
+    if d['page']==5:key('LONG');d=state()
     assert d['page']==0 and d['apps']>a.index,d
     for _ in range(d['apps']+2):
         if d['selected']==a.index:break

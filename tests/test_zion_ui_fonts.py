@@ -60,7 +60,7 @@ class FontTest(unittest.TestCase):
                 self.assertLessEqual(end,limit,f'U+{cp:04X}')
             self.assertTrue(any((value>>4) not in (0,15) or (value&15) not in (0,15) for value in bitmap))
         full=(ROOT/'assets/fonts/zion_font_14.c').read_text(encoding='utf8')
-        self.assertRegex(full,r'\.bpp\s*=\s*1\b')
+        self.assertRegex(full,r'\.bpp\s*=\s*4\b')
         self.assertIn('.fallback = NULL,',full)
 
     def test_actual_widgets_select_the_product_fonts(self):
@@ -68,8 +68,8 @@ class FontTest(unittest.TestCase):
         self.assertIn('#define ZION_FONT (&zion_font_ui_14)',policy)
         self.assertIn('#define ZION_FONT_SMALL (&zion_font_ui_10)',policy)
         launcher=(ROOT/'main/zion_launcher.c').read_text(encoding='utf8')
-        self.assertEqual(launcher.count('lv_font_unscii_8'),1)
-        self.assertIn('details[i],&lv_font_unscii_8',launcher)
+        self.assertNotIn('lv_font_unscii_8',launcher)
+        self.assertIn('details[i],ZION_FONT_SMALL',launcher)
         self.assertIn('power,ZION_FONT_SMALL',launcher)
         self.assertIn('row(5,y+38,"> 设置"',launcher)
         self.assertNotIn('LABEL(footer,notice)',launcher)

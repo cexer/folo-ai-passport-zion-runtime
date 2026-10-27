@@ -1,6 +1,9 @@
 #include "zion_install_view.h"
 #include <stdio.h>
 #include <string.h>
+uint32_t zion_install_color(unsigned stage) {
+    return stage==255?0xE43B2Fu:stage==100?0x6FD18Cu:0xEACD62u;
+}
 
 const char *zion_install_reason(const char *detail) {
     static const struct {const char *code,*text;} reasons[]={
@@ -59,7 +62,7 @@ void zion_install_format(char *out,size_t capacity,const zion_install_info_t *in
                          unsigned stage,unsigned percent,const char *detail) {
     const char *phase=stage==5?"正在获取玩法名称":stage==10?"正在读取安装布局":stage==20?"正在准备存储":
         stage==30?"正在下载并写入":stage==40?"正在校验应用":
-        stage==50?"正在保存安装记录":stage==100?"安装成功":
+        stage==50?"正在保存安装记录":stage==100?"安装完成":
         stage==255?(!strcmp(detail?detail:"","cancelled")?"安装已取消":
                      info->phase<=10?"无法安装":"安装失败"):"正在处理";
     char package[32],installed[32],progress[24],speed[40],diagnostic[96]="";

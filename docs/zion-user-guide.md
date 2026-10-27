@@ -3,9 +3,18 @@
 # Zion user guide
 
 Zion's own labels use a small 4-bpp antialiased font; battery text uses a matching
-small font. The row number/size/version line keeps its original compact font.
+small font. The row number/size/version line uses the same compact 10px/4-bpp font.
 Installed game names outside the UI subset fall back
-to the full 1-bpp Chinese font, so their existing character coverage is retained.
+to the losslessly compressed 4-bpp Chinese font, retaining all 6,873 characters.
+
+Installation progress is yellow; failures and their reasons are red. Completion
+is green and stays visible: short OK starts the just-installed game, long OK
+returns to the list. No automatic launch occurs, including after a phone reboot
+request, so another game can be installed through the same connection.
+
+The power button controls hardware supply and is not readable by firmware.
+Power-on while holding UP still enters the list; a universal power+UP soft
+restart while arbitrary standalone firmware is running is not supported.
 
 ## Everyday controls
 

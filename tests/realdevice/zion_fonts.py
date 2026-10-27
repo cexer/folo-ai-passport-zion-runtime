@@ -10,9 +10,9 @@ args=p.parse_args();d=ZionDevice(args.port,initial_key='UP');report={'passed':Fa
 try:
     d.wait(busy=0);d.home()
     d.command('ZION FONTS');d.pump(.5)
-    assert any('ZION_FONTS ui_bpp=4 small_bpp=4 fallback_bpp=1' in x for x in d.trace)
+    assert any('ZION_FONTS ui_bpp=4 small_bpp=4 fallback_bpp=4' in x for x in d.trace)
     assert any('ZION_FONT_TEST pass=1 ' in x for x in d.trace), 'Actual LVGL glyph pixel/fallback comparison failed or was not observed'
-    report['checks'].append('Real LVGL A8 decoded all native UI and small ASCII glyphs against raw 4-bpp pixels, plus full 1-bpp fallback')
+    report['checks'].append('Real LVGL A8 decoded all native UI and small ASCII glyphs against raw 4-bpp pixels, plus full 4-bpp fallback')
     initial=d.wait(page=0,busy=0,footer_fixed=1,footer_right=230);report['initial']=initial
     if initial['apps']:
         d.select_list(0);d.key('LONG');d.wait(page=1,selected=0)

@@ -1,0 +1,17 @@
+{
+  "format": "ZION-release-v1",
+  "product": "Zion",
+  "display_name": "ZION 多玩法小程序管理器",
+  "version": "0.4.6-zion",
+  "chip": "esp32c3",
+  "idf": "v5.5.3",
+  "test_control": false,
+  "app_elf_sha256": "e49eefebd0660e333ccee172cd6eb86616ded11f9bc67d0924be89d6b923f6ac",
+  "firmware": {
+    "name": "ZION-0.4.6-zion-3821658499c2.bin",
+    "bytes": 2121772,
+    "sha256": "3821658499c20e50439785cab09234d39f8182fea4fcc0bf49609cadf64e125c",
+    "format": "bootable-body+MPUPV2",
+    "initial_flash_offset": "0x0"
+  }
+}

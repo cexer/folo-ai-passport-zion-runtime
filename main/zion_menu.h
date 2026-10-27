@@ -9,6 +9,8 @@ void zion_menu_init(zion_menu_t *m);
 int zion_menu_visible(int apps,int first);
 int zion_menu_row_y(int row);
 bool zion_menu_install_qr(zion_page_t page,bool busy,unsigned stage,bool dismissed);
+bool zion_menu_install_complete(zion_page_t page,bool busy,unsigned stage,bool dismissed);
+int zion_menu_installed_target(const int *slots,int count,int installed_slot);
 bool zion_key_dispatch(unsigned *swallowed,unsigned key,zion_key_phase_t phase,bool cancelled_startup);
 /* Pure navigation shared by device keys and test injection. Destructive actions
  * are returned only after selecting an explicit confirmation, default Cancel. */

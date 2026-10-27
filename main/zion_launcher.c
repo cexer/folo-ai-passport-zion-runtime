@@ -91,6 +91,12 @@ void zion_launcher_key(zion_input_t key) {
     auto_boot=false;
     zion_service_get(&service);
     if(menu.page==ZION_MANAGE && target()==ZION_BUILTIN_SLOT && menu.selected==2 && key==ZION_OK) return;
+    if(key==ZION_OK && zion_menu_install_complete(menu.page,service.busy,service.stage,install_result_dismissed)) {
+        catalog_refresh();
+        int completed=zion_menu_installed_target(slots,apps,service.installed_slot);
+        if(completed>=0) {menu.target=completed;submit(ZION_BOOT);return;}
+        /* A removed/stale result cannot launch a different catalog entry. */
+    }
     zion_page_t previous=menu.page;
     zion_action_t a=zion_menu_input(&menu,key,apps,service.busy);
     /* A deliberate new visit opens the community, even after a failed install.
@@ -108,6 +114,7 @@ static void row(unsigned i,int y,const char *name,const char *detail,bool select
 }
 static void render(void) {
     if(!bsp_lvgl_lock(200)) return;
+    lv_obj_set_style_text_color(content,lv_color_hex(UI_INK),0);
     for(unsigned i=0;i<ROWS;i++) {lv_obj_add_flag(rows[i],LV_OBJ_FLAG_HIDDEN);lv_obj_add_flag(marks[i],LV_OBJ_FLAG_HIDDEN);}
     bool show_qr=zion_menu_install_qr(menu.page,service.busy,service.stage,install_result_dismissed);
     if(!show_qr) LABEL(install_hint,"");
@@ -203,11 +210,14 @@ static void render(void) {
         } else if(service.busy || service.stage==255 || service.stage==100) {
             zion_install_format(line,sizeof(line),&service.install,service.stage,service.percent,service.detail);
             LABEL(content,line);
+            lv_obj_set_style_text_color(content,lv_color_hex(zion_install_color(service.stage)),0);
         } else {
             snprintf(line,sizeof(line),"在官方玩法社区选择玩法\n点击小程序安装\n选择已配对的设备\n\nWi-Fi：%s\n蓝牙：%s",service.online?"已连接":"请先在设置中配网",service.connected?"已连接":"等待手机连接");
             LABEL(content,line);
         }
-        LABEL(footer,service.busy?"长按OK取消安装":"短按OK返回  长按OK返回");
+        LABEL(footer,service.busy?"长按OK取消安装":
+            zion_menu_install_complete(menu.page,service.busy,service.stage,install_result_dismissed)?
+            "短按OK启动  长按OK返回":"短按OK返回  长按OK返回");
     }
     if(service.busy && service.stage==200) {
         for(unsigned i=0;i<ROWS;i++) lv_obj_add_flag(rows[i],LV_OBJ_FLAG_HIDDEN);
@@ -230,7 +240,7 @@ void zion_launcher_init(void) {
         lv_obj_set_width(names[i],208);lv_label_set_long_mode(names[i],LV_LABEL_LONG_DOT);
         marks[i]=ui_pixel_label(rows[i],"*",ZION_FONT,UI_INK);lv_obj_add_flag(marks[i],LV_OBJ_FLAG_HIDDEN);
         details[i]=ui_pixel_label(rows[i],"",ZION_FONT,UI_INK2);
-        lv_obj_set_style_text_font(details[i],&lv_font_unscii_8,0);lv_obj_set_pos(details[i],3,18);
+        lv_obj_set_style_text_font(details[i],ZION_FONT_SMALL,0);lv_obj_set_pos(details[i],3,18);
     }
     content=ui_pixel_label(screen,"",ZION_FONT,UI_INK);lv_obj_set_width(content,220);
     install_hint=ui_pixel_label(screen,"",ZION_FONT,UI_INK2);lv_obj_set_pos(install_hint,10,230);lv_obj_set_width(install_hint,220);
