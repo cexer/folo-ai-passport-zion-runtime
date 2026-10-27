@@ -15,7 +15,6 @@ run_static_checks() {
     python3 tools/check_repo.py
     python3 tests/test_zion_product.py
     python3 tests/test_zion_ui_fonts.py
-    python3 tests/test_zion_font_decode.py
     python3 tests/test_zion_release.py
     python3 tests/test_zion_flash_layout.py
     python3 tests/test_storage_four_goals_handoff_contract.py
@@ -445,6 +444,8 @@ assert len(footer) == 44
 (d / f"meta-pass_{sys.argv[2]}.bin").write_bytes(body + footer)
 PYEOF
     python3 tools/verify_firmware.py "${validation_build_dir}"
+    # The actual decoder requires managed LVGL, resolved by the firmware build.
+    python3 tests/test_zion_font_decode.py
     # 发布工件落盘:CI(firmware-checks.yml / build-firmware.yml)在 validate.sh
     # --firmware 之后上传 build/meta-pass_v*.bin(if-no-files-found: error),
     # release job 直接把它挂到 GitHub Release——必须在这里产出,否则 CI 断供。
