@@ -14,6 +14,7 @@ run_static_checks() {
 
     python3 tools/check_repo.py
     python3 tests/test_zion_product.py
+    python3 tests/test_zion_ui_fonts.py
     python3 tests/test_zion_release.py
     python3 tests/test_zion_flash_layout.py
     python3 tests/test_storage_four_goals_handoff_contract.py

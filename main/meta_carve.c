@@ -425,8 +425,10 @@ bool meta_carve_valid(const meta_carve_t *c)
         const bool fixture_e2edata =
             d->subtype == 0x40 &&
             strncmp(d->label, "e2edata", META_DATA_LABEL_MAX) == 0;
+        const bool zion_plugin_data=d->subtype==0x41 && (d->play_id&0x80000000u) &&
+            strncmp(d->label,"zp_",3)==0;
         if (d->subtype != 0x81 && d->subtype != 0x82 &&
-            d->subtype != 0x83 && !fixture_e2edata) {
+            d->subtype != 0x83 && !fixture_e2edata && !zion_plugin_data) {
             return false;   // only child filesystem DATA + named E2E fixture
         }
         if (d->size < META_CARVE_MIN_DATA || d->size % POOL.size_granule != 0) {

@@ -1,0 +1,43 @@
+{
+  "id": 2147483697,
+  "key": "bambu-mqtt",
+  "name": "bambu-monitor",
+  "sources": [
+    "../../../../candidates/bambu-monitor/main/main.c",
+    "../../../../candidates/bambu-monitor/main/ui_pixel.c",
+    "../../../../candidates/bambu-monitor/main/ui_pixel_math.c",
+    "../../../../candidates/bambu-monitor/main/app_wifi.c",
+    "../../../../candidates/bambu-monitor/main/app_wifi_menu.c",
+    "../../../../candidates/bambu-monitor/main/app_mqtt.c",
+    "../../../../candidates/bambu-monitor/main/app_notify.c",
+    "../../../../candidates/bambu-monitor/main/app_boot.c",
+    "../../../../candidates/bambu-monitor/main/app_printer.c",
+    "../../../../candidates/bambu-monitor/main/app_config.c",
+    "../../../../candidates/bambu-monitor/main/app_provision.c",
+    "../../../../candidates/bambu-monitor/main/hms_codes.c",
+    "../../../../candidates/bambu-monitor/main/logo_bambu.c",
+    "../../../../candidates/bambu-monitor/main/font_zh14.c",
+    "../../../../candidates/bambu-monitor/main/font_zh20.c"
+  ],
+  "include_dirs": [
+    "../../../../candidates/bambu-monitor/main",
+    ".",
+    "../../../managed_components/espressif__mqtt/include",
+    "../../../managed_components/espressif__cjson/cJSON"
+  ],
+  "cflags": [
+    "-Wno-deprecated-declarations",
+    "-Wno-format-truncation",
+    "-DFW_VERSION=\"zion-link-test\"",
+    "-Wno-error=unused-variable"
+  ],
+  "idf_include_dirs": [
+    "components/fatfs/vfs",
+    "components/fatfs/src",
+    "components/wear_levelling/include",
+    "components/tcp_transport/include"
+  ],
+  "platform_include_dirs": [
+    "../../../../candidates/bambu-monitor/components/bsp/include"
+  ]
+}

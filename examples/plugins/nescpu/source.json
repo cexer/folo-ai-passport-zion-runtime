@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/oyf518/esp32-nes-card",
+  "commit": "1dba1b9ed026d03d58a7c2d61dfc1b508175f4c9",
+  "component": "Nofrendo 6502 CPU core",
+  "copyright": "1998-2000 Matthew Conte",
+  "license": "LGPL-2.0; original headers and LICENSE retained",
+  "adaptation": "Portable empty esp_attr.h shim; original CPU implementation unchanged",
+  "scope": "Runnable CPU stress application with synthetic instruction workload, not a full NES game/PPU/APU/BLE port",
+  "roms": "No third-party game ROMs copied or embedded"
+}

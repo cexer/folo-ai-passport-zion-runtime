@@ -1,0 +1,17 @@
+{
+  "id": 2147483704,
+  "key": "snoopy",
+  "name": "Snoopy Passport",
+  "entry_stack": 8192,
+  "sources": [
+    "../../../../candidates/snoopy/main/main.c",
+    "../../../../candidates/snoopy/main/snoopy_model.c",
+    "../../../../candidates/snoopy/main/snoopy_store.c",
+    "../../../../candidates/snoopy/main/snoopy_services.c",
+    "../../../../candidates/snoopy/main/snoopy_sprites.c",
+    "../../../../candidates/snoopy/assets/fonts/snoopy_font_16.c"
+  ],
+  "include_dirs": [".", "../../../../candidates/snoopy/main"],
+  "platform_include_dirs": ["../../../../candidates/snoopy/components/bsp/include"],
+  "source_flags": {"*/main.c": ["-Wno-error=sign-compare"]}
+}

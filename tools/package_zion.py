@@ -41,6 +41,9 @@ assert 'zion_install_format' in map_text and b'ZION_INSTALL_UI' in app, 'install
 assert 'zion_title_result' in map_text and b'Z592_TRANSFER_END pass=' in app, 'community titles/download telemetry not linked'
 assert 'meta_carve_flash_reload' in map_text and b'Z592_CLEANUP reclaimed=' in app, 'failed-install reconciliation/cleanup not linked'
 assert 'zion_official_mini_code' in map_text and b'kind=official-mini-code' in app and b'settings_marked=%d' in app, 'official Mini Program code/settings marker not linked'
+assert 'zion_font_ui_14' in map_text and 'zion_font_ui_10' in map_text and 'zion_font_14' in map_text, 'product 4bpp fonts/full fallback not linked'
+assert b'ZION_FONTS ui_bpp=' in app, 'runtime font profile not linked'
+assert (b'ZION_FONT_TEST pass=' in app)==test_control, 'pixel decoder test must be test-only'
 assert (root / 'assets/images/folo-mini-code-208.i1').read_bytes() in app, 'official Mini Program code pixels differ in artifact'
 app,full=brand_merged(app,(build / 'FoloToy-AI-Passport-full.bin').read_bytes())
 (build / 'FoloToy-AI-Passport-full.bin').write_bytes(full)

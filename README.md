@@ -2,6 +2,8 @@
 
 # ZION Mini-program Multi-firmware Manager
 
+**Shared-runtime / ELF experiment:** use ESP-IDF **6.0.1** and `tools/build-runtime.ps1`. Only XiaoZhi is built in; other examples are externally installed. Read [current packages, services and validation](docs/runtime-applications.md), including ADPCM/DSP and Nofrendo CPU workloads. Native entry does not reset; leaving requires power off/on, with no long-OK restart. The overview below describes the inherited independent-firmware baseline, not the current plugin build instructions or layout.
+
 A maintained multi-firmware launcher for ESP32-C3 AI Passport, derived from
 alexwwang/meta-pass and FoloToy's official mini-program installer protocol.
 The default build is the full Zion product UI, not the earlier research probe.

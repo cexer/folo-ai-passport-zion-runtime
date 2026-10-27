@@ -53,6 +53,8 @@ class ZionDevice:
                 self.trace.append(line)
             if any(marker in line for marker in ('ZION_AP auth=', 'ZION WEB_SCAN', 'Z592 SESSION_REARM', 'ZION_PORTAL')):
                 self.trace.append(line)
+            if 'ZION_FONTS ' in line or 'ZION_FONT_TEST ' in line:
+                self.trace.append(line)
             if any(marker in line for marker in ('Z592 BOOT slot=', 'ELF file SHA256:', 'Loaded app from partition', 'ZION_PRODUCT ready', 'ZION_COMMUNITY_QR', 'Z592_RADIO', 'Z592_TEST_', 'Z592_LINK', 'Z592_GATT', 'Z592_TRANSFER', 'Z592_READ_WAIT', 'Z592_TITLE', 'Z592_INSTALL_END', 'Z592_INSTALL_FAILED', 'Z592_CLEANUP', 'Z592_SNAPSHOT', 'Z592 DISCONNECT')):
                 self.trace.append(line)
 

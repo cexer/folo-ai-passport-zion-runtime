@@ -10,6 +10,14 @@
 
 static const char *TAG = "bsp_batt";
 
+void bsp_battery_poll(void) {
+    (void)bsp_battery_soc();
+    (void)bsp_battery_mv();
+}
+void bsp_battery_log_status(void) {
+    ESP_LOGI(TAG,"Battery: display_soc=%d voltage_mv=%d",bsp_battery_soc(),bsp_battery_mv());
+}
+
 #define CW_REG_VERSION   0x00   // 版本号,上电应答即代表芯片在位
 #define CW_REG_VCELL_H   0x02   // 14bit 电压,V(uV) = raw * 312.5
 #define CW_REG_SOC_H     0x04   // 高字节 = 整数百分比;低字节(0x05)= 1/256 %
@@ -200,4 +208,31 @@ int bsp_battery_mv(void) {
     if (cw_read(CW_REG_VCELL_H, b, 2) != 0) return -1;
     uint32_t raw = ((uint32_t)b[0] << 8 | b[1]) & 0x3FFF;   // 14bit
     return (int)((raw * 3125) / 10000);                     // raw * 312.5uV → mV
+}
+
+
+/* Lifecycle API reused from the official BSP. */
+esp_err_t bsp_battery_sleep(void) {
+    if (!s_dev) return ESP_OK;
+
+    for (unsigned attempt = 1; attempt <= 2; attempt++) {
+        uint8_t actual = 0;
+        esp_err_t write_error = cw_write(CW_REG_CONFIG, CW_CONFIG_SLEEP);
+        vTaskDelay(pdMS_TO_TICKS(5));
+        esp_err_t read_error = cw_read(CW_REG_CONFIG, &actual, 1);
+        if (write_error == ESP_OK && read_error == ESP_OK &&
+            actual == CW_CONFIG_SLEEP) {
+            ESP_LOGI(TAG, "CW2017 已进入休眠并通过寄存器校验");
+            return ESP_OK;
+        }
+
+        ESP_LOGW(TAG, "CW2017 休眠失败 attempt=%u write=%s(0x%x) "
+                      "read=%s(0x%x) actual=0x%02X",
+                 attempt, esp_err_to_name(write_error), (unsigned)write_error,
+                 esp_err_to_name(read_error), (unsigned)read_error, actual);
+        if (attempt < 2) vTaskDelay(pdMS_TO_TICKS(5));
+    }
+
+    ESP_LOGE(TAG, "CW2017 连续两次未能进入休眠");
+    return ESP_FAIL;
 }

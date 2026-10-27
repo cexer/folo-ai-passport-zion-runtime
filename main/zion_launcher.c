@@ -1,4 +1,7 @@
 #include "zion_service.h"
+#include "zion_builtin.h"
+#include "zion_runtime.h"
+#include "zion_package.h"
 #include "zion_manage.h"
 #include "meta_carve_flash.h"
 #include "ui_pixel.h"
@@ -10,21 +13,26 @@
 #include "esp_system.h"
 #include "esp_timer.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define ROWS 6
+#if CONFIG_META_E2E_TEST_CONTROL
+bool zion_font_selftest(void);
+#endif
 LV_IMAGE_DECLARE(zion_official_mini_code);
 static zion_menu_t menu;
 static zion_service_state_t service;
 static meta_carve_t catalog;
-static int slots[META_CARVE_MAX_SLOTS],apps;
+static int slots[META_CARVE_MAX_SLOTS+META_DATA_MAX+1],apps;
 static char versions[META_CARVE_MAX_SLOTS][17];
-static lv_obj_t *screen,*title,*content,*footer,*stats[3],*battery,*fill,*power;
+static lv_obj_t *screen,*title,*content,*footer,*footer_right,*stats[3],*battery,*fill,*power;
 static lv_obj_t *qr,*install_hint;
 static lv_obj_t *rows[ROWS],*names[ROWS],*details[ROWS],*marks[ROWS];
 /* Stable text storage avoids reallocating labels into TLS receive-buffer holes
  * while a download is active. All updates still run under the LVGL lock. */
 static char title_text[64],content_text[640],footer_text[96],power_text[12],install_hint_text[320];
+static char footer_right_text[48];
 static char stats_text[3][56],names_text[ROWS][96],details_text[ROWS][64];
 static void label_update(lv_obj_t *obj,char *buffer,size_t capacity,const char *value) {
     if(!strcmp(buffer,value) && lv_label_get_text(obj)==buffer) return;
@@ -43,7 +51,8 @@ static bool install_result_dismissed=true;
 static void catalog_refresh(void) {
     if(service.busy) return;
     if(!zion_service_catalog(&catalog)) return;
-    apps=0;
+    zion_runtime_refresh();apps=1;slots[0]=ZION_BUILTIN_SLOT;
+    for(unsigned i=0;i<zion_package_count();i++) slots[apps++]=zion_package_slot(i);
     for(unsigned i=0;i<catalog.count;i++) {
         memset(versions[i],0,sizeof(versions[i]));
         if(catalog.slot[i].state==META_SLOT_VALID) (void)esp_flash_read(NULL,versions[i],catalog.slot[i].offset+48,16);
@@ -53,9 +62,17 @@ static void catalog_refresh(void) {
     if(menu.first>=apps) menu.first=apps>4?apps-4:0;
 }
 static int target(void) {return menu.target>=0 && menu.target<apps?slots[menu.target]:-1;}
-static bool target_ready(void) {return target()>=0 && catalog.slot[target()].state==META_SLOT_VALID;}
+static int default_slot(void) {return zion_runtime_default_slot()!=-1?zion_runtime_default_slot():zion_default_find(&catalog,&service.prefs);}
+static bool target_ready(void) {return zion_runtime_name(target())!=NULL || (target()>=0 && catalog.slot[target()].state==META_SLOT_VALID);}
 static void submit(zion_action_t a) {
     if(a==ZION_NONE) return;
+    if((zion_runtime_name(target())!=NULL && a==ZION_BOOT) || (target()==ZION_BUILTIN_SLOT && a==ZION_REMOVE)) {
+        if(a==ZION_BOOT) {if(!zion_runtime_request(target())) snprintf(notice,sizeof(notice),"启动失败：请关闭配网或稍后重试");}
+        else if(a==ZION_REMOVE) {
+            snprintf(notice,sizeof(notice),"内置玩法不可删除");
+        }
+        dirty=true;return;
+    }
     if((a==ZION_BOOT || a==ZION_DEFAULT) && !target_ready()) {
         snprintf(notice,sizeof(notice),"玩法未安装完整，请先删除");dirty=true;return;
     }
@@ -73,6 +90,7 @@ bool zion_launcher_cancel_auto(void) {
 void zion_launcher_key(zion_input_t key) {
     auto_boot=false;
     zion_service_get(&service);
+    if(menu.page==ZION_MANAGE && target()==ZION_BUILTIN_SLOT && menu.selected==2 && key==ZION_OK) return;
     zion_page_t previous=menu.page;
     zion_action_t a=zion_menu_input(&menu,key,apps,service.busy);
     /* A deliberate new visit opens the community, even after a failed install.
@@ -94,10 +112,17 @@ static void render(void) {
     bool show_qr=zion_menu_install_qr(menu.page,service.busy,service.stage,install_result_dismissed);
     if(!show_qr) LABEL(install_hint,"");
     if(!show_qr && qr) {lv_obj_delete(qr);qr=NULL;}
-    if(menu.page==ZION_LIST) LABEL(footer,notice);
+    if(menu.page==ZION_LIST) {
+        lv_obj_set_width(footer,110);
+        LABEL(footer,"短按OK启动");LABEL(footer_right,"长按OK管理");
+        lv_obj_clear_flag(footer_right,LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_set_width(footer,220);LABEL(footer_right,"");
+        lv_obj_add_flag(footer_right,LV_OBJ_FLAG_HIDDEN);
+    }
     if(menu.page!=ZION_LIST) for(unsigned i=0;i<3;i++) label_update(stats[i],stats_text[i],sizeof(stats_text[i]),"");
     char line[640],meta[64];
-    int def=zion_default_find(&catalog,&service.prefs);
+    int def=default_slot();
     const char *heading=menu.page==ZION_LIST?"ZION":menu.page==ZION_MANAGE?"ZION / 管理":
         menu.page==ZION_DELETE?"ZION / 删除":menu.page==ZION_SETTINGS?"ZION / 设置":
         menu.page==ZION_WIFI?"ZION / Wi-Fi":"ZION / 安装";
@@ -106,8 +131,14 @@ static void render(void) {
         if(apps) LABEL(content,"");
         int shown=zion_menu_visible(apps,menu.first);
         for(int i=0;i<shown;i++) {
-            int s=slots[menu.first+i];const meta_carve_slot_t *item=&catalog.slot[s];
-            snprintf(line,sizeof(line),"%s%s",item->name[0]?item->name:"未完成玩法",s==def?" *":"");
+            int s=slots[menu.first+i];
+            if(zion_runtime_name(s)) {
+                snprintf(line,sizeof(line),"%s%s",zion_runtime_name(s),s==def?" *":"");
+                row((unsigned)i,zion_menu_row_y(i),line,s==ZION_BUILTIN_SLOT?"NATIVE  BUILT-IN":"ELF  RV32IM",menu.selected==menu.first+i);
+                continue;
+            }
+            const meta_carve_slot_t *item=&catalog.slot[s];
+            snprintf(line,sizeof(line),"%s",item->name[0]?item->name:"未完成玩法");
             snprintf(meta,sizeof(meta),"#%d  %luK  %s",s+1,(unsigned long)(item->size/1024),item->state==META_SLOT_VALID?versions[s]:"-");
             row((unsigned)i,zion_menu_row_y(i),line,meta,menu.selected==menu.first+i);
             lv_obj_set_width(names[i],s==def?188:208);
@@ -119,13 +150,13 @@ static void render(void) {
         if(!apps) {LABEL(content,"尚未安装玩法");lv_obj_set_pos(content,12,44);}
         int y=zion_menu_row_y(shown?shown:1);
         row(4,y,"+ 安装玩法",NULL,menu.selected==apps);
-        row(5,y+38,"= 设置",NULL,menu.selected==apps+1);
-        int installed=0;for(int i=0;i<apps;i++) if(catalog.slot[slots[i]].state==META_SLOT_VALID) installed++;
+        row(5,y+38,"> 设置",NULL,menu.selected==apps+1);
+        int installed=1+(int)zion_package_count();for(int i=installed;i<apps;i++) if(catalog.slot[slots[i]].state==META_SLOT_VALID) installed++;
         snprintf(line,sizeof(line),"已安装%d款",installed);label_update(stats[0],stats_text[0],sizeof(stats_text[0]),line);
         snprintf(line,sizeof(line),"空闲%luK",(unsigned long)(meta_carve_free(&catalog)/1024));label_update(stats[1],stats_text[1],sizeof(stats_text[1]),line);
         snprintf(line,sizeof(line),"连续%luK",(unsigned long)(meta_carve_largest_gap(&catalog)/1024));label_update(stats[2],stats_text[2],sizeof(stats_text[2]),line);
     } else if(menu.page==ZION_MANAGE) {
-        const char *items[]={"运行一次",target()==def?"取消默认":"设为默认","删除玩法","返回"};
+        const char *items[]={"运行一次",target()==def?"取消默认":"设为默认",target()==ZION_BUILTIN_SLOT?"内置玩法不可删除":"删除玩法","返回"};
         for(unsigned i=0;i<4;i++) {
             row(i,44+(int)i*44,items[i],NULL,menu.selected==(int)i);
             if(i<2 && !target_ready()) ui_pixel_set_selected(rows[i],menu.selected==(int)i,false);
@@ -135,7 +166,8 @@ static void render(void) {
     } else if(menu.page==ZION_DELETE || menu.page==ZION_CANCEL) {
         lv_obj_set_pos(content,10,48);
         if(menu.page==ZION_DELETE) {
-            const char *name=target()>=0?catalog.slot[target()].name:"玩法";
+            const char *name=zion_runtime_name(target());
+            if(!name) name=target()>=0?catalog.slot[target()].name:"玩法";
             snprintf(line,sizeof(line),"删除：%.40s\n玩法及关联资源将被清除\n此操作无法撤销",name);LABEL(content,line);
         } else LABEL(content,"取消当前安装？\n未完成的玩法不会启动");
         row(0,174,"返回",NULL,menu.selected==0);
@@ -204,19 +236,30 @@ void zion_launcher_init(void) {
     install_hint=ui_pixel_label(screen,"",ZION_FONT,UI_INK2);lv_obj_set_pos(install_hint,10,230);lv_obj_set_width(install_hint,220);
     footer=ui_pixel_label(screen,"",ZION_FONT,UI_INK);lv_obj_set_pos(footer,10,296);
     lv_obj_set_width(footer,220);lv_label_set_long_mode(footer,LV_LABEL_LONG_DOT);
+    footer_right=ui_pixel_label(screen,"",ZION_FONT,UI_INK);lv_obj_set_pos(footer_right,120,296);
+    lv_obj_set_width(footer_right,110);lv_label_set_long_mode(footer_right,LV_LABEL_LONG_DOT);
+    lv_obj_set_style_text_align(footer_right,LV_TEXT_ALIGN_RIGHT,0);
     for(unsigned i=0;i<3;i++) {stats[i]=ui_pixel_label(screen,"",ZION_FONT,UI_INK2);lv_obj_set_pos(stats[i],10+(int)i*77,270);}
     battery=ui_pixel_panel_create_plain(screen,194,9,38,16,UI_SKY);
     lv_obj_set_style_pad_all(battery,0,0);
     fill=lv_obj_create(battery);lv_obj_remove_style_all(fill);lv_obj_set_pos(fill,1,1);lv_obj_set_size(fill,0,12);
     lv_obj_set_style_bg_opa(fill,LV_OPA_COVER,0);lv_obj_set_style_bg_color(fill,lv_color_hex(0x425637),0);
-    power=ui_pixel_label(battery,"?",ZION_FONT,UI_INK);lv_obj_set_style_text_font(power,&lv_font_unscii_8,0);lv_obj_center(power);
-    lv_screen_load(screen);bsp_lvgl_unlock();
+    power=ui_pixel_label(battery,"?",ZION_FONT,UI_INK);lv_obj_set_style_text_font(power,ZION_FONT_SMALL,0);lv_obj_center(power);
+    lv_screen_load(screen);
+    printf("ZION_FONTS ui_bpp=%u small_bpp=%u fallback_bpp=%u\n",
+        ((const lv_font_fmt_txt_dsc_t *)ZION_FONT->dsc)->bpp,
+        ((const lv_font_fmt_txt_dsc_t *)ZION_FONT_SMALL->dsc)->bpp,
+        ((const lv_font_fmt_txt_dsc_t *)zion_font_14.dsc)->bpp);
+#if CONFIG_META_E2E_TEST_CONTROL
+    if(!zion_font_selftest()) abort();
+#endif
+    bsp_lvgl_unlock();
     skip_once=service.skip_autostart;
     esp_reset_reason_t reason=esp_reset_reason();int mv=bsp_button_read_mv();
     startup_escape=mv>=0 && mv<2300;
     bool cold=reason==ESP_RST_POWERON || reason==ESP_RST_EXT || reason==ESP_RST_USB || reason==ESP_RST_JTAG;
-    auto_boot=zion_should_autostart((service.prefs.flags&ZION_PREFS_ENABLED)!=0,
-        zion_default_find(&catalog,&service.prefs)>=0,cold,skip_once || (mv>=0 && mv<2300),false);
+    auto_boot=zion_should_autostart(zion_runtime_default_slot()!=-1 || (service.prefs.flags&ZION_PREFS_ENABLED)!=0,
+        default_slot()!=-1,cold,skip_once || (mv>=0 && mv<2300),false);
     deadline=esp_timer_get_time()+1800000;
     if(auto_boot) snprintf(notice,sizeof(notice),"即将自启，任意键取消");
     else if(reason==ESP_RST_PANIC || reason==ESP_RST_TASK_WDT || reason==ESP_RST_INT_WDT || reason==ESP_RST_WDT)
@@ -225,7 +268,21 @@ void zion_launcher_init(void) {
         snprintf(notice,sizeof(notice),"默认玩法已变更，请重选");
     dirty=true;render();
 }
+void zion_launcher_fonts(void) {
+    if(!bsp_lvgl_lock(1000)) return;
+    printf("ZION_FONTS ui_bpp=%u small_bpp=%u fallback_bpp=%u\n",
+        ((const lv_font_fmt_txt_dsc_t *)ZION_FONT->dsc)->bpp,
+        ((const lv_font_fmt_txt_dsc_t *)ZION_FONT_SMALL->dsc)->bpp,
+        ((const lv_font_fmt_txt_dsc_t *)zion_font_14.dsc)->bpp);
+#if CONFIG_META_E2E_TEST_CONTROL
+    (void)zion_font_selftest();
+#endif
+    fflush(stdout);bsp_lvgl_unlock();
+}
 void zion_launcher_tick(void) {
+    /* The boot-held escape key must not swallow the user's next, unrelated
+     * click after it has been released (also matters after a plugin reset). */
+    if(startup_escape && bsp_button_read_mv()>=2300) startup_escape=false;
     zion_service_get(&service);
     if(service.install_id!=install_id) {
         install_id=service.install_id;menu.page=ZION_INSTALL;install_result_dismissed=false;pending=false;dirty=true;
@@ -243,23 +300,31 @@ void zion_launcher_tick(void) {
     }
     if(service.busy && service.stage<200 && menu.page!=ZION_CANCEL) {menu.page=ZION_INSTALL;dirty=true;}
     if(auto_boot && esp_timer_get_time()>=deadline) {
-        auto_boot=false;(void)zion_service_request(ZION_BOOT,zion_default_find(&catalog,&service.prefs));
+        auto_boot=false;
+        if(zion_runtime_name(default_slot())) (void)zion_runtime_request(default_slot());
+        else (void)zion_service_request(ZION_BOOT,default_slot());
     }
     if(esp_timer_get_time()-last_refresh>=500000) {last_refresh=esp_timer_get_time();dirty=true;}
     if(dirty) render();
 }
 void zion_launcher_snapshot(void) {
-    int marker=-1,aligned=0,qr_visible=0,settings_marked=0;
+    int marker=-1,aligned=0,qr_visible=0,settings_marked=0,footer_fixed=0,footer_edge=0;
     if(bsp_lvgl_lock(200)) {
+        lv_obj_update_layout(screen);
         for(int i=0;i<4;i++) if(!lv_obj_has_flag(rows[i],LV_OBJ_FLAG_HIDDEN) && !lv_obj_has_flag(marks[i],LV_OBJ_FLAG_HIDDEN)) marker=i;
         aligned=lv_obj_get_x(rows[0])==lv_obj_get_x(rows[4]) && lv_obj_get_width(rows[0])==lv_obj_get_width(rows[4]);
         qr_visible=qr && !lv_obj_has_flag(qr,LV_OBJ_FLAG_HIDDEN) && lv_obj_get_width(qr)>0;
-        settings_marked=!strcmp(lv_label_get_text(names[5]),"= 设置");
+        settings_marked=!strcmp(lv_label_get_text(names[5]),"> 设置");
+        footer_edge=(int)(lv_obj_get_x(footer_right)+lv_obj_get_width(footer_right));
+        footer_fixed=menu.page==ZION_LIST && !strcmp(lv_label_get_text(footer),"短按OK启动") &&
+            !strcmp(lv_label_get_text(footer_right),"长按OK管理") && footer_edge==230 &&
+            lv_obj_get_style_text_align(footer_right,0)==LV_TEXT_ALIGN_RIGHT &&
+            !lv_obj_has_flag(footer_right,LV_OBJ_FLAG_HIDDEN);
         bsp_lvgl_unlock();
     }
-    printf("ZION_UI page=%d selected=%d apps=%d target=%d default=%d auto=%d busy=%d online=%d ap=%d free=%lu largest=%lu result=%d marker=%d aligned=%d qr=%d settings_marked=%d\n",
-        menu.page,menu.selected,apps,target(),zion_default_find(&catalog,&service.prefs),auto_boot,service.busy,service.online,service.ap,
-        (unsigned long)meta_carve_free(&catalog),(unsigned long)meta_carve_largest_gap(&catalog),(int)service.result,marker,aligned,qr_visible,settings_marked);
+    printf("ZION_UI page=%d selected=%d apps=%d target=%d default=%d auto=%d busy=%d online=%d ap=%d free=%lu largest=%lu result=%d marker=%d aligned=%d qr=%d settings_marked=%d footer_fixed=%d footer_right=%d\n",
+        menu.page,menu.selected,apps,target(),default_slot(),auto_boot,service.busy,service.online,service.ap,
+        (unsigned long)meta_carve_free(&catalog),(unsigned long)meta_carve_largest_gap(&catalog),(int)service.result,marker,aligned,qr_visible,settings_marked,footer_fixed,footer_edge);
     fflush(stdout);
     if(menu.page==ZION_INSTALL) {
         printf("ZION_INSTALL_UI id=%u stage=%u percent=%u name=%s package=%lu installed=%lu known=%d reason=%s cleanup=%u cleanup_error=%d\n",
@@ -315,3 +380,5 @@ void zion_launcher_qr_pixels(void) {
 #else
 void zion_launcher_qr_pixels(void) {}
 #endif
+
+void zion_launcher_suspend(void) {auto_boot=false;dirty=false;screen=NULL;}

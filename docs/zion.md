@@ -13,6 +13,9 @@ builds never enter `release/`. An existing verified package can be exported with
 `python tools/zion_release.py --package dist/<version>/<elf-prefix>`.
 The BIN is for initial flashing at `0x0` or a compatible launcher upgrade flow;
 raw full-file flashing may reset stored settings.
+For a stub error while finalizing a compressed USB write, the same verified
+package can be retried with `tools/flash_zion.py --no-compress`; this does not
+require clearing games or settings with `--fresh`.
 
 The [ZION source repository](https://github.com/cexer/folo-ai-passport-zion) derives
 from `alexwwang/meta-pass` at `3841005015352eeb73026a74dabb9f0c7bcabf4e`
@@ -20,6 +23,16 @@ and the public FoloToy 592 v4 protocol. Identity is maintained in
 `zion-product.json`; downloaded dependencies and local research artifacts are not source files.
 
 ## Runtime ownership
+
+The native UI uses uncompressed 14px/4-bpp glyphs; battery text uses 10px/4-bpp
+ASCII. The row number/size/version line retains its original Unscii 8 font.
+A complete 6,873-character 14px/1-bpp font
+remains the fallback for external names. `main/zion_fonts.h` centralizes widget
+selection. The UI subset is derived from launcher/text/install-view literals;
+host checks require regeneration after adding characters. Test firmware resolves
+every subset glyph and compares the actual LVGL A8 decoder against its raw
+4-bpp data, including a character resolved through the full fallback. This change
+keeps the existing log levels, drawing configuration and Flash partition table.
 
 Default `sdkconfig.defaults` enables `CONFIG_ZION_LAUNCHER` and the verified
 mini-program backend. `main/zion_service.c` owns `app_main`, BLE, Wi-Fi and one

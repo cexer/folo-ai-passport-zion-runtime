@@ -1,0 +1,101 @@
+{
+  "id": 2147483667,
+  "key": "nes-full",
+  "name": "nes-original",
+  "sources": [
+    "../../../../candidates/nes-card/main/app_main.c",
+    "../../../../candidates/nes-card/main/rom_menu.c",
+    "../../../../candidates/nes-card/main/osd_esp.c",
+    "../../../../candidates/nes-card/main/nes_video.c",
+    "../../../../candidates/nes-card/main/ble_pad.c",
+    "../../../../candidates/nes-card/main/music.c",
+    "../../../../candidates/nes-card/main/splash.c",
+    "../../../../candidates/nes-card/components/nofrendo/bitmap.c",
+    "../../../../candidates/nes-card/components/nofrendo/vid_drv.c",
+    "../../../../candidates/nes-card/components/nofrendo/log.c",
+    "../../../../candidates/nes-card/components/nofrendo/memguard.c",
+    "../../../../candidates/nes-card/components/nofrendo/cpu/nes6502.c",
+    "../../../../candidates/nes-card/components/nofrendo/cpu/dis6502.c",
+    "../../../../candidates/nes-card/components/nofrendo/nes/mmclist.c",
+    "../../../../candidates/nes-card/components/nofrendo/nes/nes.c",
+    "../../../../candidates/nes-card/components/nofrendo/nes/nes_mmc.c",
+    "../../../../candidates/nes-card/components/nofrendo/nes/nes_pal.c",
+    "../../../../candidates/nes-card/components/nofrendo/nes/nes_ppu.c",
+    "../../../../candidates/nes-card/components/nofrendo/nes/nes_rom.c",
+    "../../../../candidates/nes-card/components/nofrendo/nes/nesinput.c",
+    "../../../../candidates/nes-card/components/nofrendo/nes/nesstate.c",
+    "../../../../candidates/nes-card/components/nofrendo/sndhrdw/nes_apu.c",
+    "../../../../candidates/nes-card/components/nofrendo/sndhrdw/fds_snd.c",
+    "../../../../candidates/nes-card/components/nofrendo/sndhrdw/mmc5_snd.c",
+    "../../../../candidates/nes-card/components/nofrendo/sndhrdw/vrcvisnd.c",
+    "../../../../candidates/nes-card/components/nofrendo/libsnss/libsnss.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map000.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map001.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map002.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map003.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map004.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map005.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map007.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map008.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map009.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map011.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map015.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map016.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map018.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map019.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map024.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map032.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map033.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map034.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map040.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map041.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map042.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map046.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map050.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map064.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map065.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map066.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map070.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map073.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map075.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map078.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map079.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map085.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map087.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map093.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map094.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map099.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map160.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map229.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/map231.c",
+    "../../../../candidates/nes-card/components/nofrendo/mappers/mapvrc.c"
+  ],
+  "include_dirs": [
+    "../../../../candidates/nes-card/main",
+    "../../../../candidates/nes-card/components/nofrendo",
+    "../../../../candidates/nes-card/components/nofrendo/cpu",
+    "../../../../candidates/nes-card/components/nofrendo/libsnss",
+    "../../../../candidates/nes-card/components/nofrendo/mappers",
+    "../../../../candidates/nes-card/components/nofrendo/nes",
+    "../../../../candidates/nes-card/components/nofrendo/sndhrdw"
+  ],
+  "cflags": [
+    "-DNES_VISIBLE_HEIGHT=240",
+    "-Wno-discarded-qualifiers"
+  ],
+  "source_flags": {
+    "*/components/nofrendo/*": [
+      "-O2",
+      "-w"
+    ]
+  },
+  "idf_include_dirs": [
+    "components/esp_hid/include"
+  ],
+  "embed_files": [
+    {
+      "path": "../../../../candidates/nes-card/main/splash.bin",
+      "symbol": "splash_bin"
+    }
+  ]
+}

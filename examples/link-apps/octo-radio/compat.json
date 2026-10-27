@@ -1,0 +1,60 @@
+{
+  "id": 2147483699,
+  "key": "octo-radio",
+  "name": "Octo Radio",
+  "usb": true,
+  "entry_stack": 8192,
+  "sources": [
+    "../../../../candidates/octo-radio/main/main.cc",
+    "../../../../candidates/octo-radio/main/radio_catalog.cc",
+    "../../../../candidates/octo-radio/main/radio_display_settings.cc",
+    "../../../../candidates/octo-radio/main/radio_frequency.cc",
+    "../../../../candidates/octo-radio/main/radio_frequency_remote.cc",
+    "../../../../candidates/octo-radio/main/radio_frequency_remote_parse.cc",
+    "../../../../candidates/octo-radio/main/radio_octopus.cc",
+    "../../../../candidates/octo-radio/main/radio_header.cc",
+    "../../../../candidates/octo-radio/main/radio_player.cc",
+    "../../../../candidates/octo-radio/main/radio_sleep_timer.cc",
+    "../../../../candidates/octo-radio/main/radio_ui.cc",
+    "../../../../candidates/octo-radio/main/radio_font.c",
+    "../../../../candidates/octo-radio/main/radio_font_title.c",
+    "../../../../candidates/octo-radio/main/fap_screenshot.c",
+    "../../../../candidates/octo-radio/components/esp-wifi-connect/wifi_manager.cc",
+    "../../../../candidates/octo-radio/components/esp-wifi-connect/wifi_configuration_ap.cc",
+    "../../../../candidates/octo-radio/components/esp-wifi-connect/wifi_station.cc",
+    "../../../../candidates/octo-radio/components/esp-wifi-connect/ssid_manager.cc",
+    "../../../../candidates/octo-radio/components/esp-wifi-connect/dns_server.cc"
+  ],
+  "include_dirs": [
+    "../../../../candidates/octo-radio/main",
+    "../../../../candidates/octo-radio/components/esp-wifi-connect/include",
+    "../../../managed_components/espressif__cjson/cJSON"
+  ],
+  "platform_include_dirs": [
+    "../../../../candidates/octo-radio/components/bsp/include"
+  ],
+  "idf_include_dirs": [
+    "components/esp_netif/include"
+  ],
+  "embed_files": [
+    {
+      "path": "../../../../candidates/octo-radio/components/esp-wifi-connect/assets/wifi_configuration.html",
+      "symbol": "wifi_configuration_html",
+      "text": true
+    },
+    {
+      "path": "../../../../candidates/octo-radio/components/esp-wifi-connect/assets/wifi_configuration_done.html",
+      "symbol": "wifi_configuration_done_html",
+      "text": true
+    }
+  ],
+  "cflags": [
+    "-DCONFIG_RADIO_OCTOPUS_QUALITY_FULL=1",
+    "-DCONFIG_RADIO_OCTOPUS_FRAME_MS=80"
+  ],
+  "source_flags": {
+    "*/components/esp-wifi-connect/*.cc": [
+      "-Wno-sign-compare"
+    ]
+  }
+}

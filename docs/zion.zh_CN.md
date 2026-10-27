@@ -11,6 +11,8 @@
 不会进入 `release/`。也可导出现有已验证包：
 `python tools/zion_release.py --package dist/<版本号>/<ELF哈希前缀>`。
 BIN 用于从 `0x0` 首次刷写或兼容的启动器升级流程；直接全文件刷写可能重置已有配置。
+USB 压缩写入在收尾阶段被 stub 拒绝时，可对同一已校验包使用
+`tools/flash_zion.py --no-compress` 重试，不需要通过 `--fresh` 清空玩法或设置。
 
 [ZION 开源仓库](https://github.com/cexer/folo-ai-passport-zion)派生自
 `alexwwang/meta-pass` 的 `3841005015352eeb73026a74dabb9f0c7bcabf4e`，
@@ -18,6 +20,14 @@ BIN 用于从 `0x0` 首次刷写或兼容的启动器升级流程；直接全文
 下载依赖及本地研究产物不属于源码。
 
 ## 运行时职责
+
+原生界面使用未压缩的 14px／4bpp 字库，电量小字使用 10px／4bpp ASCII 字库，
+列表编号、大小、版本行保留原来的 Unscii 8 字体及字号；外部玩法名称保留完整
+6,873 字符的 14px／1bpp 字库兜底。
+`main/zion_fonts.h` 统一控件字体选择。界面子集来自启动器、中文提示及安装信息源码，
+增加字符后主机检查会要求重新生成。测试固件逐字解析界面子集，将真实 LVGL 解码的
+A8 像素与原始 4bpp 数据比较，并验证通过完整字库回退的字符。本次保持原有日志级别、
+绘图配置和 Flash 分区表。
 
 默认 `sdkconfig.defaults` 启用 `CONFIG_ZION_LAUNCHER` 和真实小程序安装后端。
 `main/zion_service.c` 承担 `app_main`、BLE、Wi-Fi 及串行工作队列。

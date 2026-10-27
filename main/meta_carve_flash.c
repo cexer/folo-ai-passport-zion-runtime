@@ -16,6 +16,7 @@
 #include <stdlib.h>
 
 #include "esp_flash.h"
+#include "esp_flash_chips/esp_flash_types.h"
 #include "esp_partition.h"
 #include "esp_flash_partitions.h"   // ESP_PARTITION_TABLE_* / esp_partition_is_flash_region_writable
 #include "esp_log.h"
@@ -31,6 +32,10 @@ static bool         s_active;       // ensure 已执行
 /* The single storage worker may release scratch between transactions while
  * HTTPS owns the heap. Persistent state and returned carve pointers stay live.
  * No storage API may run concurrently with release (same single-worker rule). */
+enum {
+    WS_IN=1u,WS_WORK=2u,WS_LIVE=4u,WS_REF=8u,WS_IO=16u,
+    WS_BEST=32u,WS_TMP=64u,WS_TABLE=128u,WS_ALL=255u
+};
 #if CONFIG_ZION_592_INSTALL
 typedef struct {
     meta_carve_t *in,*work;
@@ -51,20 +56,22 @@ void meta_carve_flash_workspace_release(void) {
     free(s_workspace->best);free(s_workspace->tmp);free(s_workspace->launcher_table);
     free(s_workspace);s_workspace=NULL;
 }
-static bool workspace_acquire(void) {
-    if(s_workspace) return true;
-    s_workspace=META_CARVE_WORKSPACE_CALLOC(1,sizeof(*s_workspace));
+static bool workspace_require(unsigned mask) {
+    if(!s_workspace) s_workspace=META_CARVE_WORKSPACE_CALLOC(1,sizeof(*s_workspace));
     if(!s_workspace) return false;
     /* Separate <=8 KiB allocations tolerate heap fragmentation left by TLS. */
-#define CARVE_ALLOC(field) do { \
+#define CARVE_ALLOC(field,bit) do { \
+    if((mask&(bit)) && !s_workspace->field) { \
     s_workspace->field=META_CARVE_WORKSPACE_CALLOC(1,sizeof(*s_workspace->field)); \
     if(!s_workspace->field) {meta_carve_flash_workspace_release();return false;} \
+    } \
 } while(0)
-    CARVE_ALLOC(in);CARVE_ALLOC(work);CARVE_ALLOC(live);CARVE_ALLOC(ref);
-    CARVE_ALLOC(io);CARVE_ALLOC(best);CARVE_ALLOC(tmp);CARVE_ALLOC(launcher_table);
+    CARVE_ALLOC(in,WS_IN);CARVE_ALLOC(work,WS_WORK);CARVE_ALLOC(live,WS_LIVE);CARVE_ALLOC(ref,WS_REF);
+    CARVE_ALLOC(io,WS_IO);CARVE_ALLOC(best,WS_BEST);CARVE_ALLOC(tmp,WS_TMP);CARVE_ALLOC(launcher_table,WS_TABLE);
 #undef CARVE_ALLOC
     return true;
 }
+static bool workspace_acquire(void) {return workspace_require(WS_ALL);}
 #define s_in (*s_workspace->in)
 #define s_work (*s_workspace->work)
 #define s_live (*s_workspace->live)
@@ -89,6 +96,7 @@ static meta_carve_rec_t s_tmp;             // A/B 比较暂存
 // src/dst 必须同属一个 pool segment且对齐合法;失败 → 错误码。
 static uint8_t launcher_table[META_PT_SIZE];
 static bool workspace_acquire(void) {return true;}
+static bool workspace_require(unsigned mask) {(void)mask;return true;}
 void meta_carve_flash_workspace_release(void) {}
 #endif
 
@@ -243,8 +251,16 @@ void meta_carve_flash_reboot_clear(void)
 
 esp_err_t meta_carve_flash_table_write(const uint8_t table[META_PT_SIZE])
 {
-    if(!workspace_acquire()) return ESP_ERR_NO_MEM;
+    if(!workspace_require(WS_IO)) return ESP_ERR_NO_MEM;
     if (!table) return ESP_ERR_INVALID_ARG;
+    /* Record verification has finished before materialization. Reuse its IO
+     * buffer for readback, preserving an overlapping caller's input. */
+    uint8_t *readback=s_io;
+    uintptr_t input=(uintptr_t)table,io=(uintptr_t)s_io;
+    if(input<io+sizeof(s_io) && io<input+META_PT_SIZE) {
+        if(!workspace_require(WS_LIVE)) return ESP_ERR_NO_MEM;
+        readback=s_live;
+    }
     // 分区表扇区(0x8000)在 IDF 危险写保护清单内(bootloader / 分区表 /
     // 运行中 app 镜像区):esp_flash_* 顶层的 CHECK_WRITE_ADDRESS 命中即
     // abort()(CONFIG_SPI_FLASH_DANGEROUS_WRITE 默认 ABORTS)。
@@ -275,9 +291,8 @@ esp_err_t meta_carve_flash_table_write(const uint8_t table[META_PT_SIZE])
         s_in_progress = false;
         return ESP_FAIL;
     }
-    // 读回进 s_live:调用方传入的 table 不与 s_live 重叠(记录表在 s_best/s_tmp)。
-    if (esp_flash_read(NULL, s_live, META_PT_FLASH_OFFSET, META_PT_SIZE) != ESP_OK ||
-        memcmp(s_live, table, META_PT_SIZE) != 0) {
+    if (esp_flash_read(NULL, readback, META_PT_FLASH_OFFSET, META_PT_SIZE) != ESP_OK ||
+        memcmp(readback, table, META_PT_SIZE) != 0) {
         ESP_LOGE(TAG, "table read-back mismatch");
         s_in_progress = false;
         return ESP_FAIL;
@@ -330,7 +345,7 @@ static bool load_best(meta_carve_rec_t *best, meta_carve_rec_t *tmp, bool *from_
 // ---- 提交 -----------------------------------------------------------------
 esp_err_t meta_carve_flash_reload(void)
 {
-    if(!workspace_acquire()) return ESP_ERR_NO_MEM;
+    if(!workspace_require(WS_IO|WS_BEST|WS_TMP)) return ESP_ERR_NO_MEM;
     bool have=false;
     for(uint32_t i=0;i<2;i++) {
         esp_err_t err=store_sector_read(i);
@@ -349,7 +364,7 @@ esp_err_t meta_carve_flash_reload(void)
 
 esp_err_t meta_carve_flash_materialize_active(uint32_t active_play_id)
 {
-    if(!workspace_acquire()) return ESP_ERR_NO_MEM;
+    if(!workspace_require(WS_LIVE|WS_REF)) return ESP_ERR_NO_MEM;
     if (!s_active || !s_have_record) return ESP_ERR_INVALID_STATE;
 
     // 0 = launcher view (APP only); non-zero = one Child Firmware's DATA.
@@ -365,7 +380,7 @@ esp_err_t meta_carve_flash_materialize_active(uint32_t active_play_id)
 
 esp_err_t meta_carve_flash_commit(const meta_carve_t *carve, bool materialize)
 {
-    if(!workspace_acquire()) return ESP_ERR_NO_MEM;
+    if(!workspace_require(WS_IN|WS_IO|WS_BEST|WS_TMP)) return ESP_ERR_NO_MEM;
     if (!carve) return ESP_ERR_INVALID_ARG;
 
     // 入参快照:调用方可能传 &s_best.carve / &s_carve(set_dirty / archive),
@@ -429,10 +444,12 @@ esp_err_t meta_carve_flash_commit(const meta_carve_t *carve, bool materialize)
          * meta_carve_flash_materialize_active() immediately before boot.
          */
 
-        if (!meta_pt_from_carve_active(&s_in, 0, launcher_table)) {
+        /* The temporary record was already written and verified. Its table
+         * storage can now hold the launcher view without another 3 KiB array. */
+        if (!meta_pt_from_carve_active(&s_in, 0, s_tmp.table)) {
             return ESP_ERR_INVALID_STATE;
         }
-        const esp_err_t e = meta_carve_flash_table_write(launcher_table);
+        const esp_err_t e = meta_carve_flash_table_write(s_tmp.table);
         if (e != ESP_OK) return e;
         s_reboot_pending = true;
     }
@@ -451,7 +468,7 @@ esp_err_t meta_carve_flash_set_valid(int slot, const char *name,
                                      uint32_t image_len,
                                      const uint8_t sha256[32])
 {
-    if(!workspace_acquire()) return ESP_ERR_NO_MEM;
+    if(!workspace_require(WS_WORK)) return ESP_ERR_NO_MEM;
     if (!s_active || !s_have_record) return ESP_ERR_INVALID_STATE;
     if (slot < 0 || slot >= (int)s_carve.count) return ESP_ERR_INVALID_ARG;
     s_work = s_carve;
@@ -469,8 +486,7 @@ esp_err_t meta_carve_flash_set_valid(int slot, const char *name,
 
 esp_err_t meta_carve_flash_remove(int slot)
 {
-    if(!workspace_acquire()) return ESP_ERR_NO_MEM;
-    if (slot < 0 || slot >= (int)s_carve.count) return ESP_ERR_INVALID_ARG;
+        if (slot < 0 || slot >= (int)s_carve.count) return ESP_ERR_INVALID_ARG;
 
     meta_carve_t next = s_carve;
     if (!meta_carve_remove(&next, (uint8_t)slot)) return ESP_ERR_INVALID_ARG;
@@ -483,7 +499,7 @@ esp_err_t meta_carve_flash_remove(int slot)
  * on commit failure the existing APP and DATA bytes must remain untouched. */
 esp_err_t meta_carve_flash_remove_app_and_data(int slot)
 {
-    if(!workspace_acquire()) return ESP_ERR_NO_MEM;
+    if(!workspace_require(WS_WORK)) return ESP_ERR_NO_MEM;
     if (!s_active || slot < 0 || slot >= (int)s_carve.count) {
         return ESP_ERR_INVALID_ARG;
     }
@@ -519,8 +535,7 @@ static void hex32_to_bin(const char hex[META_SHA256_HEX_LEN], uint8_t out[32])
 
 esp_err_t meta_carve_flash_sync_states(const meta_slot_info_t *slots, int count)
 {
-    if(!workspace_acquire()) return ESP_ERR_NO_MEM;
-    if (!s_active || !slots) return ESP_ERR_INVALID_ARG;
+        if (!s_active || !slots) return ESP_ERR_INVALID_ARG;
     if (count < 0 || count > META_SLOT_COUNT) return ESP_ERR_INVALID_ARG;
     if (!s_have_record) return ESP_OK;                  // 全新设备:尚无记录
     if (count != (int)s_carve.count) return ESP_ERR_INVALID_STATE;   // 同表派生
@@ -686,7 +701,7 @@ esp_err_t meta_carve_flash_ensure(void)
 
 esp_err_t meta_carve_flash_set_dirty(uint32_t play_id)
 {
-    if(!workspace_acquire()) return ESP_ERR_NO_MEM;
+    if(!workspace_require(WS_WORK)) return ESP_ERR_NO_MEM;
     if (!s_active || !s_have_record) return ESP_ERR_INVALID_STATE;
     if (play_id == 0) return ESP_ERR_INVALID_ARG;
 
@@ -708,7 +723,7 @@ esp_err_t meta_carve_flash_set_dirty(uint32_t play_id)
 esp_err_t meta_carve_flash_mark_dirty_selected(const meta_carve_data_key_t *keys,
                                                uint8_t n_keys)
 {
-    if(!workspace_acquire()) return ESP_ERR_NO_MEM;
+    if(!workspace_require(WS_WORK)) return ESP_ERR_NO_MEM;
     if (!s_active || !s_have_record) return ESP_ERR_INVALID_STATE;
     if (n_keys > 0 && !keys) return ESP_ERR_INVALID_ARG;
 
@@ -728,7 +743,7 @@ esp_err_t meta_carve_flash_mark_dirty_selected(const meta_carve_data_key_t *keys
 
 esp_err_t meta_carve_flash_archive_slot_and_data(int slot)
 {
-    if(!workspace_acquire()) return ESP_ERR_NO_MEM;
+    if(!workspace_require(WS_WORK)) return ESP_ERR_NO_MEM;
     if (!s_active || !s_have_record) return ESP_ERR_INVALID_STATE;
     if (slot < 0 || slot >= (int)s_carve.count) return ESP_ERR_INVALID_ARG;
 
@@ -751,7 +766,7 @@ esp_err_t meta_carve_flash_archive_slot_and_data(int slot)
 
 esp_err_t meta_carve_flash_erase_data(uint32_t play_id, const char *label)
 {
-    if(!workspace_acquire()) return ESP_ERR_NO_MEM;
+    if(!workspace_require(WS_WORK)) return ESP_ERR_NO_MEM;
     if (!s_active || !s_have_record) return ESP_ERR_INVALID_STATE;
     if (play_id == 0) return ESP_ERR_INVALID_ARG;
 
@@ -787,7 +802,7 @@ esp_err_t meta_carve_flash_erase_data(uint32_t play_id, const char *label)
 
 static uint32_t arc_prepare_locked(uint32_t target)
 {
-    if(!workspace_acquire()) return 0;
+    if(!workspace_require(WS_WORK)) return 0;
     if (!s_active || !s_have_record || target == 0) return 0;
 
     s_work = s_carve;

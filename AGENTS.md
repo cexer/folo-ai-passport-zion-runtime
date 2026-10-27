@@ -4,11 +4,25 @@
 
 # Repository Guidelines for AI Agents
 
+## Shared-runtime experimental override
+
+This branch requires ESP-IDF **6.0.1**. Use `tools/build-runtime.ps1` and
+`docs/shared-runtime.md`; the upstream 5.5.3 build and 2 MiB updater are not this
+variant's delivery path. Keep `ZION_RUNTIME_SIM=OFF` for deliverables and
+verify matching factory geometry in the APP, bootloader and partition table.
+Native applications enter directly from the list; changing applications requires
+power off/on. Never reserve long OK for restarting or returning to the launcher.
+This is a separate experimental fork, not the primary production repository.
+Native ELF requires `CONFIG_ESP_SYSTEM_MEMPROT=n` on C3; do not silently restore
+the default non-executable heap or claim that this supplies process isolation.
+The minimal XiaoZhi uses 1bpp fonts without image/prompt assets. Preserve original
+repositories and user changes; do not publish or commit without authorization.
+
 This file is the only mandatory entry point for AI-assisted work in this repository. Read task-specific documents from the routing table below; do not load every README by default.
 
 ## Product entry and required skills
 
-This checkout is the primary Zion product. Default entry is `main/zion_service.c`,
+This checkout is the shared-runtime experiment. Default entry is `main/zion_service.c`,
 with `zion_launcher.c`/`zion_menu.c` for UI and `zion_manage.c` for management.
 Do not switch the product back to the legacy `main.c` or the capture-only probe.
 Check availability of passport-develop, passport-setup, passport-build,

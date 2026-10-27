@@ -1,0 +1,40 @@
+{
+  "id": 2147483698,
+  "key": "iphone-agent",
+  "name": "iPhone Agent",
+  "bluetooth": true,
+  "usb": true,
+  "entry_stack": 8192,
+  "sources": [
+    "../../../../candidates/iphone-agent/hardware/ai_passport/main/main.c",
+    "../../../../candidates/iphone-agent/hardware/ai_passport/main/agent_bridge.c",
+    "../../../../candidates/iphone-agent/hardware/ai_passport/main/agent_config.c",
+    "../../../../candidates/iphone-agent/hardware/ai_passport/main/agent_exec.c",
+    "../../../../candidates/iphone-agent/hardware/ai_passport/main/agent_hid.c",
+    "../../../../candidates/iphone-agent/hardware/ai_passport/main/agent_keymap.c",
+    "../../../../candidates/iphone-agent/hardware/ai_passport/main/agent_link_usb.c",
+    "../../../../candidates/iphone-agent/hardware/ai_passport/main/agent_link_wifi.c",
+    "../../../../candidates/iphone-agent/hardware/ai_passport/main/agent_text.c",
+    "../../../../candidates/iphone-agent/hardware/ai_passport/main/agent_ui.c",
+    "../../../../candidates/iphone-agent/hardware/ai_passport/assets/fonts/agent_cjk_14.c"
+  ],
+  "include_dirs": [
+    "../../../../candidates/iphone-agent/hardware/ai_passport/main"
+  ],
+  "platform_include_dirs": [
+    "../../../../candidates/iphone-agent/hardware/ai_passport/components/bsp/include"
+  ],
+  "idf_include_dirs": [
+    "components/esp_hid/include"
+  ],
+  "cflags": [
+    "-DCONFIG_AGENT_BLE_NAME=\"AI Passport\"",
+    "-DCONFIG_AGENT_MOVE_STEP=10",
+    "-DCONFIG_AGENT_REPORT_INTERVAL_MS=15",
+    "-DCONFIG_AGENT_HOME_REPORTS=50",
+    "-DCONFIG_AGENT_WIFI_SSID=\"\"",
+    "-DCONFIG_AGENT_WIFI_PASSWORD=\"\"",
+    "-DCONFIG_AGENT_SERVER_HOST=\"\"",
+    "-DCONFIG_AGENT_SERVER_PORT=7300"
+  ]
+}

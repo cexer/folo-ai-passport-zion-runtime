@@ -1,0 +1,6 @@
+idf_component_register(SRCS "../firmware/mqtt_redirect.c" REQUIRES mqtt)
+if(NOT ZION_TEST_ENDPOINT_DIR)
+    message(FATAL_ERROR "Local TLS validation requires a generated endpoint/CA directory")
+endif()
+target_include_directories(${COMPONENT_LIB} PRIVATE "${ZION_TEST_ENDPOINT_DIR}")
+target_link_options(${COMPONENT_LIB} INTERFACE "-Wl,--wrap=esp_mqtt_client_init")

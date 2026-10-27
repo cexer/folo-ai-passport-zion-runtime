@@ -19,6 +19,17 @@ generated from Google Fonts Noto Sans SC under SIL OFL 1.1; see
 GB2312 Han, ASCII and selected punctuation. No audio assets are linked
 into the launcher. The UTF-8 inventory is `fonts/coverage.txt`.
 
+Product labels select `fonts/zion_font_ui_14.c` (14px, 4 bpp, native UI subset).
+Battery percentages select `fonts/zion_font_ui_10.c` (10px, 4 bpp, printable
+ASCII); the row number/size/version line retains its original Unscii 8 font.
+The fallback chain is 10px UI -> 14px UI -> full
+14px/1-bpp font. Names outside the UI subset retain full-font coverage.
+These are uncompressed subsets of the same Noto Sans SC source at weight 600,
+under the same OFL license. `fonts/zion-ui-font-manifest.json` records symbols,
+fallbacks and hashes; regenerate with `../tools/generate-zion-ui-font.py`.
+`fonts/zion_font_ui_inventory.h` feeds the test firmware's real LVGL A8 decode
+comparison; it is not linked into production.
+
 The install page embeds `images/folo_mini_code_208.c`: the official FoloToy
 WeChat Mini Program code, encoded as 208x208 I1 with an 8-byte palette (5,416
 bytes total). Its published source, original WebP, 1-bit preview, raw data and

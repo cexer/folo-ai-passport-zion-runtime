@@ -1,0 +1,80 @@
+{
+  "id": 2147483716,
+  "key": "echo",
+  "name": "Echo Descent",
+  "entry_stack": 8192,
+  "sources": [
+    "../../../../candidates/echo/main/echo_core.c",
+    "../../../../candidates/echo/main/echo_render.c",
+    "../../../../candidates/echo/main/echo_history.c",
+    "../../../../candidates/echo/main/echo_main.c"
+  ],
+  "include_dirs": [
+    "../../../../candidates/echo/main"
+  ],
+  "platform_include_dirs": [
+    "../../../../candidates/echo/components/bsp/include"
+  ],
+  "embed_files": [
+    {
+      "path": "../../../../candidates/echo/main/sfx_data/knock.raw",
+      "symbol": "knock_raw"
+    },
+    {
+      "path": "../../../../candidates/echo/main/sfx_data/knock_soft.raw",
+      "symbol": "knock_soft_raw"
+    },
+    {
+      "path": "../../../../candidates/echo/main/sfx_data/echo_open.raw",
+      "symbol": "echo_open_raw"
+    },
+    {
+      "path": "../../../../candidates/echo/main/sfx_data/echo_blocked.raw",
+      "symbol": "echo_blocked_raw"
+    },
+    {
+      "path": "../../../../candidates/echo/main/sfx_data/echo_alive.raw",
+      "symbol": "echo_alive_raw"
+    },
+    {
+      "path": "../../../../candidates/echo/main/sfx_data/echo_answered.raw",
+      "symbol": "echo_answered_raw"
+    },
+    {
+      "path": "../../../../candidates/echo/main/sfx_data/elev_up.raw",
+      "symbol": "elev_up_raw"
+    },
+    {
+      "path": "../../../../candidates/echo/main/sfx_data/elev_down.raw",
+      "symbol": "elev_down_raw"
+    },
+    {
+      "path": "../../../../candidates/echo/main/sfx_data/door.raw",
+      "symbol": "door_raw"
+    },
+    {
+      "path": "../../../../candidates/echo/main/sfx_data/blip.raw",
+      "symbol": "blip_raw"
+    },
+    {
+      "path": "../../../../candidates/echo/main/sfx_data/breath.raw",
+      "symbol": "breath_raw"
+    },
+    {
+      "path": "../../../../candidates/echo/main/sfx_data/stinger.raw",
+      "symbol": "stinger_raw"
+    },
+    {
+      "path": "../../../../candidates/echo/main/sfx_data/truth.raw",
+      "symbol": "truth_raw"
+    },
+    {
+      "path": "../../../../candidates/echo/main/sfx_data/footstep.raw",
+      "symbol": "footstep_raw"
+    },
+    {
+      "path": "../../../../candidates/echo/main/sfx_data/ambience.raw",
+      "symbol": "ambience_raw"
+    }
+  ]
+}

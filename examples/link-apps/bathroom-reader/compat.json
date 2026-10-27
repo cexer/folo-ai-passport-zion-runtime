@@ -1,0 +1,33 @@
+{
+  "id": 2147483700,
+  "key": "bath-reader",
+  "name": "Bathroom Reader",
+  "entry_stack": 12288,
+  "sources": [
+    "../../../../candidates/bathroom-reader/main/main.c",
+    "../../../../candidates/bathroom-reader/main/app_article.c",
+    "../../../../candidates/bathroom-reader/main/app_store.c",
+    "../../../../candidates/bathroom-reader/main/app_net.c",
+    "../../../../candidates/bathroom-reader/main/app_deepseek.c",
+    "../../../../candidates/bathroom-reader/main/app_debug_log.c",
+    "../../../../candidates/bathroom-reader/main/app_prompt.c",
+    "../../../../candidates/bathroom-reader/main/app_sleep.c",
+    "../../../../candidates/bathroom-reader/main/app_ui.c",
+    "../../../../candidates/bathroom-reader/assets/fonts/font_toilet_14.c",
+    "../../../../candidates/bathroom-reader/assets/fonts/font_toilet_20.c"
+  ],
+  "include_dirs": [
+    "../../../../candidates/bathroom-reader/main",
+    "../../../../candidates/bathroom-reader/assets/fonts",
+    "../../../../candidates/bathroom-reader/components/dns_server/include"
+  ],
+  "platform_include_dirs": [
+    "../../../../candidates/bathroom-reader/components/bsp/include"
+  ],
+  "cflags": [
+    "-Wno-deprecated-declarations"
+  ],
+  "compat_headers": [
+    "sdk_migration.h"
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "id": 2147483665,
+  "key": "gallery-full",
+  "name": "gallery-original",
+  "sources": [
+    "../../../../candidates/gallery/main/main.c",
+    "../../../../candidates/gallery/main/app.c",
+    "../../../../candidates/gallery/main/text.c",
+    "../../../../candidates/gallery/main/screen_ui.c",
+    "../../../../candidates/gallery/main/app_config.c",
+    "../../../../candidates/gallery/main/nav.c",
+    "../../../../candidates/gallery/main/album.c",
+    "../../../../candidates/gallery/main/settings.c",
+    "../../../../candidates/gallery/main/ui.c",
+    "../../../../candidates/gallery/main/photo_store.c",
+    "../../../../candidates/gallery/main/media_catalog.c",
+    "../../../../candidates/gallery/main/fga_format.c",
+    "../../../../candidates/gallery/main/fam1_format.c",
+    "../../../../candidates/gallery/main/audio_catalog.c",
+    "../../../../candidates/gallery/main/audio_config.c",
+    "../../../../candidates/gallery/main/audio_player.c",
+    "../../../../candidates/gallery/main/music_controls.c",
+    "../../../../candidates/gallery/main/animation_player.c",
+    "../../../../candidates/gallery/main/web_media.c",
+    "../../../../candidates/gallery/main/image.c",
+    "../../../../candidates/gallery/main/wifi_http.c"
+  ],
+  "include_dirs": [
+    "../../../../candidates/gallery/main"
+  ],
+  "cflags": [
+    "-Wno-deprecated-declarations",
+    "-DWIFI_BW_HT20=WIFI_BW20"
+  ],
+  "platform_include_dirs": [
+    "../../../../candidates/gallery/components/bsp/include"
+  ],
+  "idf_include_dirs": [
+    "components/fatfs/vfs",
+    "components/fatfs/src",
+    "components/wear_levelling/include",
+    "components/sdmmc/include",
+    "components/esp_hal_sd/include",
+    "components/esp_driver_sdmmc/include",
+    "components/esp_driver_sdspi/include"
+  ]
+}

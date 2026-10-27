@@ -1,0 +1,8 @@
+{
+  "id": 2147483653,
+  "key": "idf-compat",
+  "name": "IDF Compat CPU",
+  "sources": ["main/main.c", "../plugins/nescpu/upstream/nes6502.c"],
+  "include_dirs": ["../plugins/nescpu", "../plugins/nescpu/upstream"],
+  "cflags": ["-Wno-discarded-qualifiers"]
+}

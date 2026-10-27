@@ -1,0 +1,155 @@
+{
+  "id": 2147483718,
+  "key": "pokewalk",
+  "name": "PokeWalk",
+  "entry_stack": 8192,
+  "sources": [
+    "../../../../candidates/pokewalk/firmware/main/main.c",
+    "../../../../candidates/pokewalk/firmware/main/ui_pixel.c",
+    "../../../../candidates/pokewalk/firmware/main/ui_pixel_math.c",
+    "../../../../candidates/pokewalk/firmware/main/assets.c",
+    "../../../../candidates/pokewalk/firmware/main/pokemon_names.c",
+    "../../../../candidates/pokewalk/firmware/main/sensing.c",
+    "../../../../candidates/pokewalk/firmware/main/nurture.c",
+    "../../../../candidates/pokewalk/firmware/main/items.c",
+    "../../../../candidates/pokewalk/firmware/main/exp.c",
+    "../../../../candidates/pokewalk/firmware/main/evolution.c",
+    "../../../../candidates/pokewalk/firmware/main/party.c",
+    "../../../../candidates/pokewalk/firmware/main/box_view.c",
+    "../../../../candidates/pokewalk/firmware/main/world.c",
+    "../../../../candidates/pokewalk/firmware/main/wifi_time.c",
+    "../../../../candidates/pokewalk/firmware/main/johto.c",
+    "../../../../candidates/pokewalk/firmware/main/johto_routes.c",
+    "../../../../candidates/pokewalk/firmware/main/field_adventure.c",
+    "../../../../candidates/pokewalk/firmware/main/johto_story.c",
+    "../../../../candidates/pokewalk/firmware/main/story_transactions.c",
+    "../../../../candidates/pokewalk/firmware/main/johto_activity.c",
+    "../../../../candidates/pokewalk/firmware/main/activity_transactions.c",
+    "../../../../candidates/pokewalk/firmware/main/combat.c",
+    "../../../../candidates/pokewalk/firmware/main/trainer.c",
+    "../../../../candidates/pokewalk/firmware/main/gym_rules.c",
+    "../../../../candidates/pokewalk/firmware/main/achievements.c",
+    "../../../../candidates/pokewalk/firmware/main/play_achievements.c",
+    "../../../../candidates/pokewalk/firmware/main/battle.c",
+    "../../../../candidates/pokewalk/firmware/main/battle_escape.c",
+    "../../../../candidates/pokewalk/firmware/main/battle_presentation.c",
+    "../../../../candidates/pokewalk/firmware/main/pokemon_animation.c",
+    "../../../../candidates/pokewalk/firmware/main/shiny_entry.c",
+    "../../../../candidates/pokewalk/firmware/main/battle_fx.c",
+    "../../../../candidates/pokewalk/firmware/main/gold_fx.c",
+    "../../../../candidates/pokewalk/firmware/main/battle_hud.c",
+    "../../../../candidates/pokewalk/firmware/main/game_ui.c",
+    "../../../../candidates/pokewalk/firmware/main/growth_ui.c",
+    "../../../../candidates/pokewalk/firmware/main/evolution_ui.c",
+    "../../../../candidates/pokewalk/firmware/main/capture.c",
+    "../../../../candidates/pokewalk/firmware/main/encounter.c",
+    "../../../../candidates/pokewalk/firmware/main/exploration.c",
+    "../../../../candidates/pokewalk/firmware/main/play_exploration.c",
+    "../../../../candidates/pokewalk/firmware/main/save.c",
+    "../../../../candidates/pokewalk/firmware/main/save_bank.c",
+    "../../../../candidates/pokewalk/firmware/main/save_bank_device.c",
+    "../../../../candidates/pokewalk/firmware/main/opening.c",
+    "../../../../candidates/pokewalk/firmware/main/transition.c",
+    "../../../../candidates/pokewalk/firmware/main/nav.c",
+    "../../../../candidates/pokewalk/firmware/main/audio.c",
+    "../../../../candidates/pokewalk/firmware/main/music.c",
+    "../../../../candidates/pokewalk/firmware/main/cry.c",
+    "../../../../candidates/pokewalk/firmware/main/sound_mixer.c",
+    "../../../../candidates/pokewalk/firmware/main/music_director.c",
+    "../../../../candidates/pokewalk/firmware/main/sfx.c",
+    "../../../../candidates/pokewalk/firmware/main/audio_settings.c",
+    "../../../../candidates/pokewalk/firmware/main/display_settings.c",
+    "../../../../candidates/pokewalk/firmware/main/play_opening.c",
+    "../../../../candidates/pokewalk/firmware/main/play_starter.c",
+    "../../../../candidates/pokewalk/firmware/main/dbg.c",
+    "../../../../candidates/pokewalk/firmware/main/console_record.c",
+    "../../../../candidates/pokewalk/firmware/main/usb_backup.c",
+    "../../../../candidates/pokewalk/firmware/main/usb_backup_device.c",
+    "../../../../candidates/pokewalk/firmware/main/restore_journal.c",
+    "../../../../candidates/pokewalk/firmware/main/play_enc.c",
+    "../../../../candidates/pokewalk/firmware/main/play_battle.c",
+    "../../../../candidates/pokewalk/firmware/main/play_capture.c",
+    "../../../../candidates/pokewalk/firmware/main/play_dex.c",
+    "../../../../candidates/pokewalk/firmware/main/screen.c",
+    "../../../../candidates/pokewalk/firmware/main/battery_ui.c",
+    "../../../../candidates/pokewalk/firmware/main/screen_idle.c",
+    "../../../../candidates/pokewalk/firmware/main/render.c",
+    "../../../../candidates/pokewalk/firmware/main/play_idle.c",
+    "../../../../candidates/pokewalk/firmware/main/play_care.c",
+    "../../../../candidates/pokewalk/firmware/main/play_bag.c",
+    "../../../../candidates/pokewalk/firmware/main/play_menu.c",
+    "../../../../candidates/pokewalk/firmware/main/play_party.c",
+    "../../../../candidates/pokewalk/firmware/main/play_trainer.c",
+    "../../../../candidates/pokewalk/firmware/main/dungeon.c",
+    "../../../../candidates/pokewalk/firmware/main/dungeon_rewards.c",
+    "../../../../candidates/pokewalk/firmware/main/play_dungeon.c",
+    "../../../../candidates/pokewalk/firmware/main/play_johto.c",
+    "../../../../candidates/pokewalk/firmware/main/play_activity.c",
+    "../../../../candidates/pokewalk/firmware/main/play_story.c",
+    "../../../../candidates/pokewalk/firmware/main/play_narrative.c",
+    "../../../../candidates/pokewalk/firmware/main/play_field.c",
+    "../../../../candidates/pokewalk/firmware/main/narrative_script.c",
+    "../../../../candidates/pokewalk/firmware/main/play_collect.c",
+    "../../../../candidates/pokewalk/firmware/main/demo_button.c",
+    "../../../../candidates/pokewalk/firmware/main/demo_battery.c",
+    "../../../../candidates/pokewalk/firmware/main/demo_radio.c",
+    "../../../../candidates/pokewalk/firmware/main/demo_wifi.c"
+  ],
+  "include_dirs": [
+    "../../../../candidates/pokewalk/firmware/main"
+  ],
+  "platform_include_dirs": [
+    "../../../../candidates/pokewalk/firmware/components/bsp/include"
+  ],
+  "cflags": [
+    "-DCONFIG_POKEWALK_DEBUG_KEYS=1"
+  ],
+  "embed_files": [
+    {
+      "path": "../../../../candidates/pokewalk/assets/gen1.bin",
+      "symbol": "gen1_bin"
+    },
+    {
+      "path": "../../../../candidates/pokewalk/assets/gen1_front.bin",
+      "symbol": "gen1_front_bin"
+    },
+    {
+      "path": "../../../../candidates/pokewalk/assets/gen1_back.bin",
+      "symbol": "gen1_back_bin"
+    },
+    {
+      "path": "../../../../candidates/pokewalk/assets/palettes.bin",
+      "symbol": "palettes_bin"
+    },
+    {
+      "path": "../../../../candidates/pokewalk/assets/font16.bin",
+      "symbol": "font16_bin"
+    },
+    {
+      "path": "../../../../candidates/pokewalk/assets/moves.bin",
+      "symbol": "moves_bin"
+    },
+    {
+      "path": "../../../../candidates/pokewalk/assets/ui.bin",
+      "symbol": "ui_bin"
+    }
+  ],
+  "compat_headers": [
+    "sdk_headers.h"
+  ],
+  "source_flags": {
+    "*/main.c": [
+      "-Wno-error=deprecated-declarations",
+      "-Wno-error=unused-function"
+    ],
+    "*/wifi_time.c": [
+      "-Wno-error=sign-compare"
+    ],
+    "*/gold_fx.c": [
+      "-Wno-error=sign-compare"
+    ],
+    "*/play_dungeon.c": [
+      "-Wno-error=sign-compare"
+    ]
+  }
+}

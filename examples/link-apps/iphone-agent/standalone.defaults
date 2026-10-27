@@ -1,0 +1,2 @@
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="../../../../firmware/examples/link-apps/iphone-agent/standalone-partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="../../../../firmware/examples/link-apps/iphone-agent/standalone-partitions.csv"

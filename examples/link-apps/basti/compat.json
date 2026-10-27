@@ -1,0 +1,41 @@
+{
+  "id": 2147483710,
+  "key": "basti",
+  "name": "Basti Virtual Pet",
+  "entry_stack": 8192,
+  "sources": [
+    "../../../../candidates/basti/main/main.c",
+    "../../../../candidates/basti/main/ui_pixel.c",
+    "../../../../candidates/basti/main/ui_pixel_math.c",
+    "../../../../candidates/basti/main/basti_audio.c",
+    "../../../../candidates/basti/main/basti_model.c",
+    "../../../../candidates/basti/main/basti_clock.c",
+    "../../../../candidates/basti/main/basti_save_policy.c",
+    "../../../../candidates/basti/main/basti_art.c",
+    "../../../../candidates/basti/main/basti_store.c",
+    "../../../../candidates/basti/main/demo_basti.c",
+    "../../../../candidates/basti/main/demo_display.c",
+    "../../../../candidates/basti/main/demo_button.c",
+    "../../../../candidates/basti/main/demo_audio.c",
+    "../../../../candidates/basti/main/demo_battery.c",
+    "../../../../candidates/basti/main/demo_radio.c",
+    "../../../../candidates/basti/main/demo_wifi.c",
+    "../../../../candidates/basti/main/demo_ble.c",
+    "../../../../candidates/basti/main/demo_low_power.c"
+  ],
+  "include_dirs": [
+    "../../../../candidates/basti/main"
+  ],
+  "platform_include_dirs": [
+    "../../../../candidates/basti/components/bsp/include"
+  ],
+  "bluetooth": true,
+  "source_flags": {
+    "*/main.c": [
+      "-Wno-error=deprecated-declarations"
+    ],
+    "*/demo_low_power.c": [
+      "-Wno-error=deprecated-declarations"
+    ]
+  }
+}

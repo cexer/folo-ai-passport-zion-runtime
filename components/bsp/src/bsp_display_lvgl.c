@@ -16,7 +16,8 @@ lv_display_t *bsp_lvgl_init(void) {
         return NULL;
     }
 
-    const lvgl_port_cfg_t pc = ESP_LVGL_PORT_INIT_CONFIG();
+    lvgl_port_cfg_t pc = ESP_LVGL_PORT_INIT_CONFIG();
+    pc.task_stack=10240;
     if (lvgl_port_init(&pc) != ESP_OK) {
         ESP_LOGE(TAG, "lvgl_port_init 失败");
         return NULL;
@@ -42,6 +43,18 @@ lv_display_t *bsp_lvgl_init(void) {
 
     ESP_LOGI(TAG, "LVGL 就绪");
     return s_disp;
+}
+
+/* Connect Four exposed the missing landscape BSP entry. Let esp_lvgl_port
+ * update MADCTL and LVGL geometry together; a software-rotated full-frame
+ * buffer would cost 150 KiB on this no-PSRAM board. See runtime-optimization-log. */
+esp_err_t bsp_lvgl_set_landscape(bool landscape) {
+    if (!s_disp) return ESP_ERR_INVALID_STATE;
+    lv_display_set_rotation(s_disp, landscape ? LV_DISPLAY_ROTATION_90 : LV_DISPLAY_ROTATION_0);
+    ESP_LOGI(TAG, "ORIENTATION landscape=%d width=%d height=%d", landscape,
+             (int)lv_display_get_horizontal_resolution(s_disp),
+             (int)lv_display_get_vertical_resolution(s_disp));
+    return ESP_OK;
 }
 
 bool bsp_lvgl_lock(int timeout_ms) { return lvgl_port_lock(timeout_ms); }

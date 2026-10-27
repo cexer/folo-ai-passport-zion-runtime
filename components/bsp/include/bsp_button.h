@@ -3,6 +3,7 @@
 #pragma once
 
 #include "esp_err.h"
+#include <stdint.h>
 
 // 按键索引。数量用 bsp_pins.h 的 BSP_BTN_COUNT(硬件属性,归引脚表管),
 // 这里不再定义尾项计数,避免出现 BSP_BTN_COUNT / BSP_BTN_COUNT_ 两个近似名字。
@@ -21,6 +22,7 @@ typedef enum {
     BSP_BTN_CLICK,       // 单击(按下并抬起)
     BSP_BTN_DOUBLE,      // 双击
     BSP_BTN_LONG,        // 长按(按住 BSP_BTN_LONG_MS 时触发)
+    BSP_BTN_RELEASE,     // Raw release; existing click/hold values stay unchanged.
 } bsp_btn_ev_t;
 
 // 按键事件回调。运行于 button 组件的定时器任务,勿在其中阻塞或做重活。
@@ -32,3 +34,12 @@ esp_err_t bsp_button_init(bsp_btn_cb_t cb, void *user);
 // ★ 换了分压/上拉阻值后,用它测出自己的三档电压,再改 bsp_pins.h 的 BSP_BTN_MV_TABLE。
 // 读取失败返回 -1。
 int bsp_button_read_mv(void);
+/* Shared-runtime ownership: reuse an existing hardware button, never another ADC. */
+void *bsp_button_handle(unsigned index);
+/* Entry-worker only: retain the same ADC/pins, optionally classify one virtual
+ * parallel-key level. Callback and original profile are restored on failure. */
+esp_err_t bsp_button_configure_ranges(unsigned count,const uint16_t (*ranges)[2]);
+unsigned bsp_button_configured_count(void);
+/* Representative voltage for the active ladder, or -1 for an unknown key. */
+int bsp_button_key_voltage(unsigned key);
+esp_err_t bsp_button_prepare_deep_sleep(int *level);

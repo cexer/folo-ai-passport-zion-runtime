@@ -17,6 +17,7 @@ static const char *TAG = "bsp_disp";
 static esp_lcd_panel_handle_t    s_panel;
 static esp_lcd_panel_io_handle_t s_io;
 static bool                      s_bl_ready;
+static uint8_t s_requested_brightness=100, s_master_brightness=100;
 
 // ---------------------------------------------------------------------------
 // 深睡唤醒恢复:槽位固件(如 tianshang)无操作进 deep sleep 前会 gpio_hold_en()
@@ -212,10 +213,85 @@ esp_lcd_panel_handle_t bsp_display_panel(void) { return s_panel; }
 esp_lcd_panel_io_handle_t bsp_display_io(void) { return s_io; }
 
 void bsp_display_backlight(uint8_t percent) {
-    if (!s_bl_ready) return;
     if (percent > 100) percent = 100;
+    s_requested_brightness=percent;
+    percent=(uint8_t)((uint16_t)percent*s_master_brightness/100u);
+    if (!s_bl_ready) return;
     uint32_t max_duty = (1u << BSP_BL_LEDC_RES) - 1u;
     uint32_t duty = (max_duty * percent) / 100u;
     ledc_set_duty(BSP_BL_LEDC_MODE, BSP_BL_LEDC_CHANNEL, duty);
     ledc_update_duty(BSP_BL_LEDC_MODE, BSP_BL_LEDC_CHANNEL);
+}
+
+void bsp_display_set_master_brightness(uint8_t percent) {
+    s_master_brightness=percent>100?100:percent;
+    bsp_display_backlight(s_requested_brightness);
+}
+uint8_t bsp_display_get_master_brightness(void) {return s_master_brightness;}
+
+/* Shared lifecycle exposed by Passport OS's display settings/screen-off path.
+ * Reuse the existing panel instead of compiling a second SPI/display owner. */
+void bsp_display_power(bool on) {
+    if (!s_panel) return;
+    esp_err_t err;
+    if (on) {
+        err=esp_lcd_panel_disp_sleep(s_panel,false);
+        if (err==ESP_OK) {
+            vTaskDelay(pdMS_TO_TICKS(120));
+            err=esp_lcd_panel_disp_on_off(s_panel,true);
+        }
+    } else {
+        err=esp_lcd_panel_disp_on_off(s_panel,false);
+        if (err==ESP_OK) err=esp_lcd_panel_disp_sleep(s_panel,true);
+    }
+    if (err!=ESP_OK) ESP_LOGE(TAG,"panel power transition on=%d failed: %s",on,esp_err_to_name(err));
+}
+
+
+/* Lifecycle API reused from the official BSP. */
+esp_err_t bsp_display_prepare_deep_sleep(void) {
+    esp_err_t first_error = ESP_OK;
+    if (!s_panel) {
+        first_error = ESP_ERR_INVALID_STATE;
+        ESP_LOGE(TAG, "LCD 未就绪，无法发送 deep-sleep 命令");
+    } else {
+        esp_err_t e = esp_lcd_panel_disp_on_off(s_panel, false);
+        if (e != ESP_OK) {
+            ESP_LOGE(TAG, "ST7789 关闭显示失败: %s", esp_err_to_name(e));
+            first_error = e;
+        }
+        e = esp_lcd_panel_disp_sleep(s_panel, true);
+        if (e != ESP_OK) {
+            ESP_LOGE(TAG, "ST7789 Sleep In 失败: %s", esp_err_to_name(e));
+            if (first_error == ESP_OK) first_error = e;
+        }
+    }
+
+    bsp_display_backlight(0);
+    if (s_bl_ready && BSP_LCD_BL >= 0) {
+        esp_err_t e = ledc_stop(BSP_BL_LEDC_MODE, BSP_BL_LEDC_CHANNEL, 0);
+        if (e != ESP_OK) {
+            ESP_LOGE(TAG, "LCD 背光 PWM 停止失败: %s", esp_err_to_name(e));
+            if (first_error == ESP_OK) first_error = e;
+        }
+    }
+
+    esp_err_t e = display_set_safe_levels();
+    if (e != ESP_OK) {
+        ESP_LOGE(TAG, "LCD SPI 安全电平配置失败: %s", esp_err_to_name(e));
+        if (first_error == ESP_OK) first_error = e;
+    }
+    for (size_t i = 0; i < sizeof(s_deep_sleep_pins) /
+                           sizeof(s_deep_sleep_pins[0]); i++) {
+        gpio_num_t pin = s_deep_sleep_pins[i];
+        if ((int)pin < 0) continue;
+        e = gpio_hold_en(pin);
+        if (e != ESP_OK) {
+            ESP_LOGE(TAG, "LCD GPIO%d hold 失败: %s", (int)pin, esp_err_to_name(e));
+            if (first_error == ESP_OK) first_error = e;
+        }
+    }
+    gpio_deep_sleep_hold_en();
+    ESP_LOGI(TAG, "ST7789 已休眠，LCD SPI 与背光安全电平已保持");
+    return first_error;
 }

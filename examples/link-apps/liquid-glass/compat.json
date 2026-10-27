@@ -1,0 +1,58 @@
+{
+  "id": 2147483706,
+  "key": "liquidglass",
+  "name": "Liquid Glass UI",
+  "entry_stack": 8192,
+  "bluetooth": true,
+  "usb": true,
+  "sources": [
+    "../../../../candidates/liquid-glass/main/main.c",
+    "../../../../candidates/liquid-glass/main/ui_pixel.c",
+    "../../../../candidates/liquid-glass/main/ui_pixel_math.c",
+    "../../../../candidates/liquid-glass/main/ui_glass.c",
+    "../../../../candidates/liquid-glass/main/ui_glass_optics.c",
+    "../../../../candidates/liquid-glass/main/ui_glass_theme.c",
+    "../../../../candidates/liquid-glass/main/ui_glass_focus.c",
+    "../../../../candidates/liquid-glass/main/ui_glass_motion.c",
+    "../../../../candidates/liquid-glass/main/ui_glass_quality.c",
+    "../../../../candidates/liquid-glass/main/ui_glass_widgets.c",
+    "../../../../candidates/liquid-glass/main/ui_glass_runtime.c",
+    "../../../../candidates/liquid-glass/main/liquid_glass_motion.c",
+    "../../../../candidates/liquid-glass/main/liquid_glass_compositor_core.c",
+    "../../../../candidates/liquid-glass/main/ui_glass_compositor.c",
+    "../../../../candidates/liquid-glass/main/fap_screenshot.c",
+    "../../../../candidates/liquid-glass/main/demo_glass_system.c",
+    "../../../../candidates/liquid-glass/main/demo_liquid_glass.c",
+    "../../../../candidates/liquid-glass/main/demo_display.c",
+    "../../../../candidates/liquid-glass/main/demo_button.c",
+    "../../../../candidates/liquid-glass/main/demo_audio.c",
+    "../../../../candidates/liquid-glass/main/demo_battery.c",
+    "../../../../candidates/liquid-glass/main/demo_radio.c",
+    "../../../../candidates/liquid-glass/main/demo_wifi.c",
+    "../../../../candidates/liquid-glass/main/demo_ble.c",
+    "../../../../candidates/liquid-glass/main/demo_low_power.c"
+  ],
+  "include_dirs": [
+    "../../../../candidates/liquid-glass/main"
+  ],
+  "platform_include_dirs": [
+    "../../../../candidates/liquid-glass/components/bsp/include"
+  ],
+  "embed_files": [
+    {
+      "path": "../../../../candidates/liquid-glass/assets/images/liquid_glass_wallpaper.rgb565",
+      "symbol": "liquid_glass_wallpaper_rgb565"
+    }
+  ],
+  "cflags": [
+    "-Desp_deep_sleep_enable_gpio_wakeup=esp_sleep_enable_gpio_wakeup_on_hp_periph_powerdown"
+  ],
+  "source_flags": {
+    "*/main.c": [
+      "-Wno-error=deprecated-declarations"
+    ],
+    "*/demo_low_power.c": [
+      "-Wno-error=deprecated-declarations"
+    ]
+  }
+}

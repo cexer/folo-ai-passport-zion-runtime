@@ -1,0 +1,12 @@
+{
+  "community": "https://ai-passport.folotoy.cn/plays/9/",
+  "repository": "https://github.com/PhoenixZHC/folotoy_gallery",
+  "commit": "00cbde9d2c9f7998f1690e44c7dcc8ed21cbb63f",
+  "files": [
+    "main/fga_format.c",
+    "main/fga_format.h",
+    "main/animation_player.c",
+    "main/animation_player.h"
+  ],
+  "scope": "Original media parser and animation state machine, with a new ZION SDK playback adapter; not the entire Gallery web/upload/music UI."
+}

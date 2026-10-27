@@ -1,4 +1,7 @@
 build/
+/build-final/
+/build-runtime*/
+/build-builtin-smoke/
 sdkconfig
 sdkconfig.old
 managed_components/
@@ -40,3 +43,7 @@ build-e2e/
 .env
 .env.*
 *.log
+
+# Local build profiles and their generated output.
+/build*/
+/examples/*/build*/

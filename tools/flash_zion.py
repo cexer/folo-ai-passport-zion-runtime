@@ -14,6 +14,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--port', required=True)
 parser.add_argument('--package', required=True)
 parser.add_argument('--fresh', action='store_true', help='Explicitly clear games/settings for a new layout; preserve identity')
+parser.add_argument('--no-compress', action='store_true', help='Use uncompressed transfer if the stub rejects the compressed stream')
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
 package = Path(args.package).resolve()
@@ -68,6 +69,8 @@ for (offset, file), (next_offset, _) in zip(segments, segments[1:]):
 for offset, file in segments:
     assert offset + file.stat().st_size <= 0x356000 or offset >= 0x35a000, 'identity overlap'
 arguments = ['write_flash', '--flash_mode', 'keep', '--flash_freq', 'keep', '--flash_size', 'keep']
+if args.no_compress:
+    arguments.append('--no-compress')
 for offset, file in segments:
     arguments += [hex(offset), str(file)]
 output = esptool(arguments)

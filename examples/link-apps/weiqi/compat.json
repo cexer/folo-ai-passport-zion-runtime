@@ -1,0 +1,39 @@
+{
+  "id": 2147483708,
+  "key": "weiqi",
+  "name": "Weiqi Challenge",
+  "entry_stack": 8192,
+  "sources": [
+    "../../../../candidates/weiqi/main/main.c",
+    "../../../../candidates/weiqi/main/wq_app.c",
+    "../../../../candidates/weiqi/main/wq_page_title.c",
+    "../../../../candidates/weiqi/main/wq_page_world.c",
+    "../../../../candidates/weiqi/main/wq_page_levels.c",
+    "../../../../candidates/weiqi/main/wq_page_play.c",
+    "../../../../candidates/weiqi/main/wq_page_result.c",
+    "../../../../candidates/weiqi/main/wq_ui.c",
+    "../../../../candidates/weiqi/main/wq_session.c",
+    "../../../../candidates/weiqi/main/wq_engine.c",
+    "../../../../candidates/weiqi/main/wq_progress.c",
+    "../../../../candidates/weiqi/main/wq_content.c",
+    "../../../../candidates/weiqi/main/wq_wrap.c",
+    "../../../../candidates/weiqi/main/wq_volume.c",
+    "../../../../candidates/weiqi/main/wq_store.c",
+    "../../../../candidates/weiqi/main/wq_sfx.c",
+    "../../../../candidates/weiqi/main/rtttl_player.c",
+    "../../../../candidates/weiqi/assets/fonts/wq_font_16.c",
+    "../../../../candidates/weiqi/assets/fonts/wq_font_24.c",
+    "../../../../candidates/weiqi/assets/fonts/wq_font_32.c"
+  ],
+  "include_dirs": [
+    "../../../../candidates/weiqi/main"
+  ],
+  "platform_include_dirs": [
+    "../../../../candidates/weiqi/components/bsp/include"
+  ],
+  "source_flags": {
+    "*/main.c": [
+      "-Wno-error=deprecated-declarations"
+    ]
+  }
+}

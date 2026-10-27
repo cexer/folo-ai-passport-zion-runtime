@@ -30,8 +30,12 @@ static unsigned final_fault,record_read_failures,cleanup_fault;
 static bool final_attempted,table_fault;
 static uint32_t erase_fault_at;
 static int workspace_fail_at=-1,workspace_allocs;
+static size_t workspace_budget=(size_t)-1,workspace_spent;
 void *meta_workspace_test_calloc(size_t count,size_t size) {
     if(workspace_allocs++==workspace_fail_at) return NULL;
+    size_t bytes=count*size;
+    if(bytes>workspace_budget-workspace_spent) return NULL;
+    workspace_spent+=bytes;
     return calloc(count,size);
 }
 static unsigned ready_count,error_count;
@@ -157,7 +161,10 @@ int main(void) {
     meta_carve_flash_test_reset();assert(meta_carve_flash_ensure()==ESP_OK);
     assert(meta_carve_flash_carve()->slot[0].state==META_SLOT_VALID);assert_protected();
     puts("PASS installer: bounded layout probe + exactly one full transfer, real SHA, NOR readback, durable VALID record");
-    for(int i=0;i<9;i++) {
+    meta_carve_flash_workspace_release();workspace_allocs=0;workspace_spent=0;
+    assert(meta_carve_flash_commit(meta_carve_flash_carve(),false)==ESP_OK);
+    int cold_allocations=workspace_allocs;
+    for(int i=0;i<cold_allocations;i++) {
         meta_carve_flash_workspace_release();workspace_fail_at=i;workspace_allocs=0;
         unsigned old_writes=write_calls,old_erases=erase_calls;
         assert(meta_carve_flash_commit(meta_carve_flash_carve(),false)==ESP_ERR_NO_MEM);
@@ -167,6 +174,13 @@ int main(void) {
         assert(meta_carve_flash_carve()->slot[0].state==META_SLOT_VALID);
     }
     puts("PASS workspace: every allocation failure leaves Flash unchanged; release/reacquire retains canonical state");
+    /* Reproduce the board's ~26 KiB free heap while reserving 8 KiB for live UI.
+     * This is a test allocator budget, never a package or production quota. */
+    meta_carve_flash_workspace_release();workspace_allocs=0;workspace_spent=0;workspace_budget=18000;
+    assert(meta_carve_flash_commit(meta_carve_flash_carve(),true)==ESP_OK);
+    assert(workspace_spent<=workspace_budget);
+    meta_carve_flash_workspace_release();workspace_budget=(size_t)-1;workspace_spent=0;
+    puts("PASS commit under memory pressure: durable record and table with UI reserve");
     reset();r=make_request();r.sha256[0]^=1;
     assert(z592_install_request(&r,progress,NULL,&slot)!=ESP_OK);
     assert(requests==2 && erase_calls && write_calls && !ready_count && error_count==1);assert_protected();

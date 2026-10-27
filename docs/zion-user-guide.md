@@ -2,6 +2,11 @@
 
 # Zion user guide
 
+Zion's own labels use a small 4-bpp antialiased font; battery text uses a matching
+small font. The row number/size/version line keeps its original compact font.
+Installed game names outside the UI subset fall back
+to the full 1-bpp Chinese font, so their existing character coverage is retained.
+
 ## Everyday controls
 
 The list contains installed games, Install and Settings. Up/Down moves the
@@ -9,6 +14,8 @@ selection and scrolls through up to eight records; storage limits the actual
 number of games. Short OK starts a game once. Long OK opens management. A star
 **after** the title marks the default. The battery has a progress background;
 unknown battery readings show a question mark.
+The list keeps its short-OK launch hint on the left and long-OK management hint
+on the right. Status messages do not replace these list instructions.
 
 Card metadata shows the device slot number, APP slot capacity and firmware
 version. It is not the community play ID or published download size. Owned
@@ -75,7 +82,7 @@ own independent setup procedure.
 
 ## Installing from the official community
 
-The list uses `+ Install` and `= Settings` prefixes to separate launcher actions
+The list uses `+ Install` and `> Settings` prefixes to separate launcher actions
 from game titles. Selecting Install shows the official WeChat Mini Program code
 and asks the user to scan with WeChat. It is an issued Mini Program code image,
 not a standard QR containing the community website URL. Returning

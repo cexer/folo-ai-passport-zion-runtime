@@ -1,0 +1,28 @@
+{
+  "id": 2147483712,
+  "key": "bagua",
+  "name": "Bagua Compass",
+  "entry_stack": 8192,
+  "sources": [
+    "../../../../candidates/bagua/main/main.c",
+    "../../../../candidates/bagua/main/bagua_core.c",
+    "../../../../candidates/bagua/main/bagua_data.c",
+    "../../../../candidates/bagua/main/bagua_font.c",
+    "../../../../candidates/bagua/main/bagua_img.c",
+    "../../../../candidates/bagua/main/bagua_ui.c",
+    "../../../../candidates/bagua/main/bagua_app.c",
+    "../../../../candidates/bagua/main/bg_font_16.c",
+    "../../../../candidates/bagua/main/bg_font_22.c"
+  ],
+  "include_dirs": [
+    "../../../../candidates/bagua/main"
+  ],
+  "platform_include_dirs": [
+    "../../../../candidates/bagua/components/bsp/include"
+  ],
+  "source_flags": {
+    "*/bagua_ui.c": [
+      "-Wno-error=unused-function"
+    ]
+  }
+}

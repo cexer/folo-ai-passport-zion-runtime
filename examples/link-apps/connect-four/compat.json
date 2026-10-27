@@ -1,0 +1,25 @@
+{
+  "id": 2147483705,
+  "key": "connectfour",
+  "name": "Connect Four",
+  "entry_stack": 8192,
+  "bluetooth": true,
+  "sources": [
+    "../../../../candidates/connect-four/main/main.c",
+    "../../../../candidates/connect-four/main/c4_model.c",
+    "../../../../candidates/connect-four/main/c4_ai.c",
+    "../../../../candidates/connect-four/main/c4_layout.c",
+    "../../../../candidates/connect-four/main/c4_settings.c",
+    "../../../../candidates/connect-four/main/c4_ui.c",
+    "../../../../candidates/connect-four/main/c4_sound.c",
+    "../../../../candidates/connect-four/main/c4_screenshot.c",
+    "../../../../candidates/connect-four/main/c4_link_proto.c",
+    "../../../../candidates/connect-four/main/c4_link.c",
+    "../../../../candidates/connect-four/main/c4_app.c",
+    "../../../../candidates/connect-four/components/bsp/src/bsp_ble_link.c"
+  ],
+  "include_dirs": ["../../../../candidates/connect-four/main"],
+  "platform_include_dirs": ["../../../../candidates/connect-four/components/bsp/include"],
+  "source_flags": {"*/main.c": ["-Wno-error=deprecated-declarations"]},
+  "cflags": ["-Desp_deep_sleep_enable_gpio_wakeup=esp_sleep_enable_gpio_wakeup_on_hp_periph_powerdown"]
+}

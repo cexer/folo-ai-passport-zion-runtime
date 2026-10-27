@@ -1,0 +1,24 @@
+{
+  "id": 2147483707,
+  "key": "wordbook",
+  "name": "Word Notebook",
+  "entry_stack": 8192,
+  "sources": [
+    "../../../../candidates/word-notebook/main/main.c",
+    "../../../../candidates/word-notebook/main/app_fonts.c",
+    "../../../../candidates/word-notebook/main/word_data.c",
+    "../../../../candidates/word-notebook/main/audio_index.c",
+    "../../../../candidates/word-notebook/main/word_model.c",
+    "../../../../candidates/word-notebook/main/word_quiz.c",
+    "../../../../candidates/word-notebook/main/word_store.c",
+    "../../../../candidates/word-notebook/main/audio_player.c",
+    "../../../../candidates/word-notebook/main/word_app.c",
+    "../../../../candidates/word-notebook/assets/fonts/app_font_16.c",
+    "../../../../candidates/word-notebook/assets/fonts/app_font_20.c"
+  ],
+  "include_dirs": ["../../../../candidates/word-notebook/main"],
+  "platform_include_dirs": ["../../../../candidates/word-notebook/components/bsp/include"],
+  "embed_files": [
+    {"path": "../../../../candidates/word-notebook/assets/audio/ogden_words.adpcm", "symbol": "ogden_words_blob", "rename_to": "ogden_words_blob"}
+  ]
+}

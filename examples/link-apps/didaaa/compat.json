@@ -1,0 +1,54 @@
+{
+  "id": 2147483701,
+  "key": "didaaa",
+  "name": "DiDaaa",
+  "entry_stack": 8192,
+  "sources": [
+    "../../../../candidates/didaaa/main/main.c",
+    "../../../../candidates/didaaa/main/cw_morse.c",
+    "../../../../candidates/didaaa/main/cw_proto.c",
+    "../../../../candidates/didaaa/main/cw_radio.c",
+    "../../../../candidates/didaaa/main/cw_net.c",
+    "../../../../candidates/didaaa/main/cw_prov.c",
+    "../../../../candidates/didaaa/main/cw_ota.c"
+  ],
+  "include_dirs": [
+    "../../../../candidates/didaaa/main",
+    "../../../managed_components/espressif__esp_websocket_client/include"
+  ],
+  "platform_include_dirs": [
+    "../../../../candidates/didaaa/components/bsp/include"
+  ],
+  "embed_files": [
+    {
+      "path": "../../../../candidates/didaaa/main/root_ca.pem",
+      "symbol": "root_ca_pem",
+      "text": true
+    }
+  ],
+  "cflags": [
+    "-DCONFIG_CW_WIFI_SSID=\"myssid\"",
+    "-DCONFIG_CW_WIFI_PASSWORD=\"mypassword\"",
+    "-DCONFIG_CW_SERVER_IP=\"192.168.1.10\"",
+    "-DCONFIG_CW_UDP_PORT=21303",
+    "-DCONFIG_CW_TLS=0",
+    "-DCONFIG_CW_MQTT_URI=\"mqtt://192.168.1.10:1883\"",
+    "-DCONFIG_CW_FW_PORT=21301",
+    "-DCONFIG_CW_RETRY_SEC=15",
+    "-DCONFIG_CW_CALLSIGN=\"\"",
+    "-Wno-deprecated-declarations"
+  ],
+  "compat_headers": [
+    "font_import.h"
+  ],
+  "button_config_header": "../../../../candidates/didaaa/components/bsp/include/bsp_pins.h",
+  "source_flags": {
+    "*/main/cw_net.c": [
+      "-Wno-error=sign-compare",
+      "-fno-strict-aliasing"
+    ],
+    "*/main/cw_prov.c": [
+      "-Wno-error=sign-compare"
+    ]
+  }
+}

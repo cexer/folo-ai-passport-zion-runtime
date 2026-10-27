@@ -1,0 +1,37 @@
+{
+  "manufacturer": "folotoy",
+  "type": "ai-passport",
+  "target": "esp32c3",
+  "builds": [
+    {
+      "name": "ai-passport-small",
+      "sdkconfig_append": [
+        "CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y",
+        "CONFIG_PARTITION_TABLE_CUSTOM_FILENAME=\"partitions/v2/8m-no-assets.csv\"",
+        "CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y",
+        "CONFIG_LV_USE_QRCODE=n",
+        "CONFIG_USE_ESP_WAKE_WORD=n",
+        "CONFIG_FLASH_NONE_ASSETS=y",
+        "CONFIG_XIAOZHI_COMPACT_FONT=n",
+        "CONFIG_XIAOZHI_SILENT_PROMPTS=n"
+      ]
+    },
+    {
+      "name": "ai-passport-minsize",
+      "sdkconfig_append": [
+        "CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y",
+        "CONFIG_PARTITION_TABLE_CUSTOM_FILENAME=\"partitions/v2/8m-no-assets.csv\"",
+        "CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y",
+        "CONFIG_LV_USE_QRCODE=n",
+        "CONFIG_USE_ESP_WAKE_WORD=n",
+        "CONFIG_FLASH_NONE_ASSETS=y",
+        "CONFIG_XIAOZHI_COMPACT_FONT=y",
+        "CONFIG_XIAOZHI_SILENT_PROMPTS=y",
+        "CONFIG_XIAOZHI_TEXT_ONLY=y",
+        "CONFIG_LV_FONT_DEFAULT_UNSCII_8=y",
+        "CONFIG_LV_FONT_MONTSERRAT_14=n",
+        "CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_DEFAULT_CMN=y"
+      ]
+    }
+  ]
+}

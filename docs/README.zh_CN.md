@@ -1,8 +1,16 @@
+**简体中文** | [English](README.md)
+
 # FoloToy AI Passport
 
-Zion 用户请先看[使用说明](zion-user-guide.zh_CN.md)；实现及兼容性边界见 [Zion](zion.zh_CN.md)。
+优化背景及触发应用：[Runtime 优化记录](runtime-optimization-log.zh_CN.md)。
 
-[English](README.md) | 简体中文
+公共运行时实验：[社区应用编译链接接管验证](community-link-validation.zh_CN.md)。
+
+公共运行时分支请先读[当前外部应用说明](runtime-applications.zh_CN.md)，使用 `tools/build-runtime.ps1` 构建。
+业务 C 源码尽量不改的构建方式，见实验性的 [ESP-IDF 源码兼容配置](idf-source-compat.zh_CN.md)。
+继承的用户指南描述独立固件产品。
+
+Zion 用户请先看[使用说明](zion-user-guide.zh_CN.md)；实现及兼容性边界见 [Zion](zion.zh_CN.md)。
 
 FoloToy AI Passport 是一个开放式可穿戴 AI 硬件，本仓库是这款 AI 硬件的开发基线。它不只展示"板子能运行什么"，还把开发应用所需的**硬件事实、稳定接口、资源边界、参考实现和验收方法**放在同一仓库中。
 

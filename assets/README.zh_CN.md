@@ -45,5 +45,14 @@
 `tests/realdevice/requirements-zion-pixels.txt`。这种服务端签发的小程序码不能用
 包含网页网址的普通二维码代替。来源为 FoloToy 官网；来源未单独声明资源再分发许可，
 其权利不等同于仓库代码许可。图案不包含设备专属秘密。
+
+正式界面文字选用 `fonts/zion_font_ui_14.c`（14px、4bpp、原生界面字符子集）。
+电量百分比选用 `fonts/zion_font_ui_10.c`（10px、4bpp、可打印 ASCII），
+列表编号、大小、版本行保留原来的 Unscii 8 字体及字号。
+回退链为 10px 界面字库 → 14px 界面字库 → 完整 14px／1bpp 字库，玩法名称中
+不在界面子集的字仍保留原有完整字库覆盖。这两个未压缩子集使用同一 Noto Sans SC
+源字体、600 字重及 OFL 许可。字符、回退及哈希见 `fonts/zion-ui-font-manifest.json`，
+使用 `../tools/generate-zion-ui-font.py` 重建。`fonts/zion_font_ui_inventory.h` 用于
+测试固件调用真实 LVGL 解码器并逐像素比较 A8 结果，不链接到正式版。
 配网结果页同时嵌入现有的 `images/folo-mini-code-208.png`（2,210 字节），复用同一小程序码及来源，
 用于离线展示；此兜底入口不需要新增图片或访问外网。

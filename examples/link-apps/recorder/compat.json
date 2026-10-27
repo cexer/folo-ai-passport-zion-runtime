@@ -1,0 +1,43 @@
+{
+  "id": 2147483696,
+  "key": "recorder",
+  "name": "recorder",
+  "sources": [
+    "../../../../candidates/recorder/main/app_main.cpp",
+    "../../../../candidates/recorder/main/passport_audio.cpp",
+    "../../../../candidates/recorder/main/passport_board.cpp",
+    "../../../../candidates/recorder/main/network_config.cpp",
+    "../../../../candidates/recorder/main/network_uploader.cpp",
+    "../../../../candidates/recorder/main/recording_store.cpp",
+    "../../../../candidates/recorder/main/recorder_ui.cpp",
+    "../../../../candidates/recorder/main/web_export.cpp"
+  ],
+  "include_dirs": [
+    "../../../../candidates/recorder/main",
+    "../../../managed_components/espressif__esp_audio_codec/include/decoder",
+    "../../../managed_components/espressif__esp_audio_codec/include/encoder",
+    "../../../managed_components/espressif__esp_audio_codec/include/simple_dec",
+    "../../../managed_components/espressif__esp_audio_codec/include/decoder/impl",
+    "../../../managed_components/espressif__esp_audio_codec/include/encoder/impl",
+    "../../../managed_components/espressif__esp_audio_codec/include/simple_dec/impl",
+    "../../../managed_components/espressif__esp_audio_codec/include"
+  ],
+  "cflags": [
+    "-Wno-deprecated-declarations",
+    "-Wno-format-truncation"
+  ],
+  "idf_include_dirs": [
+    "components/fatfs/vfs",
+    "components/fatfs/src",
+    "components/wear_levelling/include",
+    "components/sdmmc/include",
+    "components/esp_hal_sd/include",
+    "components/esp_driver_sdmmc/include",
+    "components/esp_driver_sdspi/include"
+  ],
+  "storage": {
+    "label": "recordings",
+    "bytes": 2097152
+  },
+  "entry_stack": 6144
+}

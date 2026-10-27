@@ -9,6 +9,12 @@
 #include "zion592_wire.h"
 #if CONFIG_ZION_LAUNCHER
 #include "zion_service.h"
+#include "zion_builtin.h"
+#include "zion_runtime.h"
+#include "zion_runtime_model.h"
+#include "zion_package.h"
+#include "zion_idf_compat.h"
+
 #include "zion_manage.h"
 #include "zion_prefs.h"
 #include "zion_wifi.h"
@@ -34,6 +40,12 @@
 #include "esp_partition.h"
 #include "esp_system.h"
 #include "esp_wifi.h"
+#include "esp_wifi_default.h"
+#include "esp_bt.h"
+#include "driver/usb_serial_jtag_vfs.h"
+#include "driver/usb_serial_jtag.h"
+#include <fcntl.h>
+#include <unistd.h>
 #if CONFIG_META_E2E_TEST_CONTROL
 #include "esp_coexist.h"
 #endif
@@ -65,6 +77,13 @@ typedef struct {
 _Static_assert(sizeof(info_t)==40,"592 info ABI");
 _Static_assert(sizeof(status_t)==12,"592 status ABI");
 static const char *TAG="z592";
+#if ZION_RUNTIME_TEST_KEYS
+static void allocation_failed(size_t bytes,uint32_t caps,const char *name) {
+    ESP_EARLY_LOGE("zion-memory","ALLOC_FAILED bytes=%u caps=0x%lx caller=%s task=%s free=%u largest=%u",
+        (unsigned)bytes,(unsigned long)caps,name,pcTaskGetName(NULL),
+        (unsigned)esp_get_free_heap_size(),(unsigned)heap_caps_get_largest_free_block(caps));
+}
+#endif
 static char s_name[13];
 static uint8_t s_addr_type;
 static uint16_t s_conn=BLE_HS_CONN_HANDLE_NONE,s_status_handle,s_scan_handle;
@@ -77,7 +96,12 @@ static unsigned s_status_reads,s_status_notifies,s_control_writes,s_secure_write
 static unsigned s_rejects,s_last_reject;
 static bool s_connected,s_wifi_online;
 static uint32_t s_capture_size,s_capture_source;
-static bool s_busy;
+static bool s_busy,s_native_claimed;
+static atomic_bool s_ble_running;
+static atomic_bool s_native_keep_wifi=true;
+static atomic_bool s_native_worker_stop;
+static atomic_bool s_native_console_stop;
+static atomic_bool s_native_owns_usb;
 static unsigned s_install_stage,s_percent,s_completed;
 static int s_installed_slot=-1;
 static char s_install_detail[64];
@@ -92,8 +116,9 @@ static int64_t s_boot_at;
 static bool s_show_list;
 static int s_selected;
 #endif
-typedef struct {bsp_btn_t button;bsp_btn_ev_t event;} key_t;
+typedef struct {bsp_btn_t button;bsp_btn_ev_t event;} zion_button_msg_t;
 static QueueHandle_t s_keys;
+static atomic_bool s_keys_ready;
 #endif
 static z592_transfer_t s_transfer;
 #if !CONFIG_ZION_LAUNCHER
@@ -101,8 +126,19 @@ static lv_obj_t *s_screen,*s_label,*s_stats,*s_battery;
 #endif
 #if CONFIG_ZION_592_INSTALL
 static void on_key(bsp_btn_t button,bsp_btn_ev_t event,void *context);
-#if CONFIG_ZION_LAUNCHER && CONFIG_META_E2E_TEST_CONTROL
-static void inject_key(bsp_btn_t button,bsp_btn_ev_t event) {on_key(button,BSP_BTN_PRESS,NULL);on_key(button,event,NULL);if(event==BSP_BTN_LONG) on_key(button,BSP_BTN_CLICK,NULL);}
+#if CONFIG_ZION_LAUNCHER && (CONFIG_META_E2E_TEST_CONTROL || ZION_RUNTIME_TEST_KEYS)
+static void inject_key(bsp_btn_t button,bsp_btn_ev_t event) {
+    if(zion_runtime_active() && zion_idf_polling_buttons()) {
+        extern void zion_test_adc_key(unsigned,bool);
+        zion_test_adc_key(button,event==BSP_BTN_LONG);return;
+    }
+    on_key(button,BSP_BTN_PRESS,NULL);
+    if(event==BSP_BTN_CLICK) on_key(button,BSP_BTN_RELEASE,NULL);
+    on_key(button,event,NULL);
+    if(event==BSP_BTN_LONG) {on_key(button,BSP_BTN_RELEASE,NULL);on_key(button,BSP_BTN_CLICK,NULL);}
+    if(zion_runtime_active()) zion_idf_inject_component_key(button,event);
+}
+static void test_edge_dispatch(unsigned key,unsigned phase) {on_key((bsp_btn_t)key,(bsp_btn_ev_t)phase,NULL);}
 #endif
 static esp_err_t boot_child(int slot);
 #endif
@@ -128,6 +164,7 @@ static bool install_autoboot_allowed(void) {
 }
 #endif
 static void radio_snapshot(const char *reason) {
+    if(!atomic_load(&s_ble_running)) {ESP_LOGI(TAG,"ZION_RADIO inactive reason=%s",reason);return;}
     struct ble_gap_conn_desc conn;wifi_ps_type_t ps=WIFI_PS_MIN_MODEM;wifi_ap_record_t ap={0};
     int gap=ble_gap_conn_find(s_conn,&conn);esp_err_t power=esp_wifi_get_ps(&ps),wifi=esp_wifi_sta_get_ap_info(&ap);
     ESP_LOGI(TAG,"Z592_LINK reason=%s ble=%d interval_us=%lu latency=%u timeout_ms=%lu ps=%d power_result=%d rssi=%d channel=%u wifi_result=%d wnd=%u mbox=%u",
@@ -157,13 +194,101 @@ static void snapshot_print(void) {
     portEXIT_CRITICAL(&s_lock);
     printf("Z592_GATT reads=%u notifies=%u controls=%u secure=%u busy_rejects=%u\n",reads,notifies,controls,secure,busy);fflush(stdout);
 }
-static void console_worker(void *arg) {
-    (void)arg;char line[48];unsigned used=0;
+/* Keep USB control reachable; large installation stacks are no longer needed.
+ * Installing during a running app is rejected rather than touching its Flash. */
+void zion_service_native_control(const char *line) {
+#if ZION_RUNTIME_TEST_KEYS
+            unsigned edge_key,edge_phase;
+            if(sscanf(line,"ZION ADC %u %u",&edge_key,&edge_phase)==2) {
+                extern bool zion_test_adc_pulse(unsigned,unsigned);
+                bool valid=zion_runtime_active() && zion_test_adc_pulse(edge_key,edge_phase);
+                printf("ZION_ADC_DONE key=%u ms=%u result=%d\n",edge_key,edge_phase,valid?0:-1);
+            }
+            if(sscanf(line,"ZION PULSE %u %u",&edge_key,&edge_phase)==2) {
+                extern bool zion_test_button_pulse(unsigned,unsigned,void (*)(unsigned,unsigned));
+                if(!zion_runtime_active() || edge_key>=bsp_button_configured_count() ||
+                   !zion_test_button_pulse(edge_key,edge_phase,test_edge_dispatch)) puts("ZION_PULSE_FAIL");
+            }
+            if(sscanf(line,"ZION EDGE %u %u",&edge_key,&edge_phase)==2) {
+                bool valid=zion_runtime_active() && edge_key<bsp_button_configured_count() &&
+                    (edge_phase==BSP_BTN_PRESS || edge_phase==BSP_BTN_RELEASE);
+                if(valid) on_key((bsp_btn_t)edge_key,(bsp_btn_ev_t)edge_phase,NULL);
+                printf("ZION_EDGE_DONE key=%u phase=%u result=%d\n",edge_key,edge_phase,valid?0:-1);
+            }
+            if(!strcmp(line,"ZION KEY UP")) inject_key(BSP_BTN_UP,BSP_BTN_CLICK);
+            if(!strcmp(line,"ZION KEY DOWN")) inject_key(BSP_BTN_DOWN,BSP_BTN_CLICK);
+            if(!strcmp(line,"ZION KEY OK")) inject_key(BSP_BTN_OK,BSP_BTN_CLICK);
+            if(!strcmp(line,"ZION KEY LONG")) inject_key(BSP_BTN_OK,BSP_BTN_LONG);
+            if(!strcmp(line,"ZION KEY UPLONG")) inject_key(BSP_BTN_UP,BSP_BTN_LONG);
+            if(!strcmp(line,"ZION KEY DOWNLONG")) inject_key(BSP_BTN_DOWN,BSP_BTN_LONG);
+#endif
+            if(!strncmp(line,"ZION INSTALL ",13) || !strncmp(line,"ZION LEGACY ",12))
+                printf("ZION_UPLOAD_DONE result=-1 stage=application-active\n");
+            if(!strcmp(line,"ZION MEM")) {
+                multi_heap_info_t info;heap_caps_get_info(&info,MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT);
+                printf("ZION_MEMORY free=%u allocated=%u largest=%u\n",(unsigned)info.total_free_bytes,
+                    (unsigned)info.total_allocated_bytes,(unsigned)info.largest_free_block);
+            }
+#if ZION_RUNTIME_TEST_KEYS
+            extern bool zion_test_capture_begin(void);
+            extern void zion_test_tasks(void);
+            if(!strcmp(line,"ZION CAPTURE")) printf("ZION_LCD_ARMED result=%d\n",zion_test_capture_begin());
+            if(!strcmp(line,"ZION TASKS")) zion_test_tasks();
+            extern void zion_test_runtime_trace(bool);
+            if(!strcmp(line,"ZION TRACE ON")) zion_test_runtime_trace(true);
+            if(!strncmp(line,"ZION KEY ",9)) printf("ZION_KEY_DONE remaining_stack=%u\n",(unsigned)uxTaskGetStackHighWaterMark(NULL));
+#endif
+            fflush(stdout);
+}
+static void native_console(void *arg) {
+    (void)arg;
+    char line[32];
+    unsigned used=0;
     for(;;) {
         int c=getchar();
         if(c==EOF) {clearerr(stdin);vTaskDelay(pdMS_TO_TICKS(20));continue;}
         if(c=='\n' || c=='\r') {
             line[used]=0;
+            zion_service_native_control(line);
+            used=0;
+        } else if(used<sizeof(line)-1) line[used++]=(char)c;
+        else used=0;
+    }
+}
+static void console_worker(void *arg) {
+    (void)arg;char line[128];unsigned used=0;
+#if !ZION_RUNTIME_SIM
+    if (!usb_serial_jtag_is_driver_installed()) {
+        usb_serial_jtag_driver_config_t config = {
+            .rx_buffer_size = 1024, .tx_buffer_size = 1024
+        };
+        ESP_ERROR_CHECK(usb_serial_jtag_driver_install(&config));
+    }
+    usb_serial_jtag_vfs_use_driver();
+    int flags = fcntl(fileno(stdin), F_GETFL);
+    configASSERT(flags >= 0 && fcntl(fileno(stdin), F_SETFL, flags | O_NONBLOCK) == 0);
+    ESP_LOGI(TAG, "USB_BUFFERED rx=1024 tx=1024");
+#endif
+    usb_serial_jtag_vfs_set_rx_line_endings(ESP_LINE_ENDINGS_LF);
+    for(;;) {
+        if(atomic_load(&s_native_console_stop)) {
+            if(!atomic_load(&s_native_owns_usb))
+                configASSERT(xTaskCreate(native_console,"zion-control",ZION_RUNTIME_TEST_KEYS?4096:2048,NULL,3,NULL)==pdPASS);
+            xEventGroupSetBits(s_wifi_bits,BIT3);
+            vTaskDelete(NULL);
+        }
+        int c=getchar();
+        if(c==EOF) {clearerr(stdin);vTaskDelay(pdMS_TO_TICKS(20));continue;}
+        if(c=='\n' || c=='\r') {
+            line[used]=0;
+            unsigned long upload_size;
+            char upload_sha[65];
+            if(sscanf(line,"ZION LEGACY %lu %64s",&upload_size,upload_sha)==2) {
+                uint8_t digest[32];bool valid=strlen(upload_sha)==64;
+                for(unsigned i=0;i<32 && valid;i++) {unsigned value;if(sscanf(upload_sha+i*2,"%2x",&value)!=1) valid=false;else digest[i]=(uint8_t)value;}
+                if(valid) (void)zion_legacy_receive((uint32_t)upload_size,digest);
+            }
+            if(sscanf(line,"ZION INSTALL %lu",&upload_size)==1) (void)zion_package_receive((uint32_t)upload_size);
             if(!strcmp(line,"Z592 STATE") || !strcmp(line,"Z592 UI")) snapshot_print();
 #if CONFIG_ZION_LAUNCHER
             if(!strcmp(line,"ZION NET")) {
@@ -172,7 +297,20 @@ static void console_worker(void *arg) {
                 fflush(stdout);
             }
             if(!strcmp(line,"ZION STATE")) {portENTER_CRITICAL(&s_lock);s_snapshot_requested=true;portEXIT_CRITICAL(&s_lock);}
+            if(!strcmp(line,"ZION FONTS")) zion_launcher_fonts();
             if(!strcmp(line,"ZION RADIO")) radio_snapshot("query");
+#if ZION_RUNTIME_TEST_KEYS
+            if(!strcmp(line,"ZION KEY UP")) inject_key(BSP_BTN_UP,BSP_BTN_CLICK);
+            if(!strcmp(line,"ZION KEY DOWN")) inject_key(BSP_BTN_DOWN,BSP_BTN_CLICK);
+            if(!strcmp(line,"ZION KEY OK")) inject_key(BSP_BTN_OK,BSP_BTN_CLICK);
+            if(!strcmp(line,"ZION KEY LONG")) inject_key(BSP_BTN_OK,BSP_BTN_LONG);
+            if(!strcmp(line,"ZION KEY UPLONG")) inject_key(BSP_BTN_UP,BSP_BTN_LONG);
+            if(!strcmp(line,"ZION KEY DOWNLONG")) inject_key(BSP_BTN_DOWN,BSP_BTN_LONG);
+            if(!strcmp(line,"ZION STAY")) {
+                s_prefs.flags|=ZION_PREFS_SKIP_ONCE;
+                printf("ZION_STAY result=%d\n",(int)zion_prefs_save(&s_prefs));fflush(stdout);
+            }
+#endif
 #if CONFIG_META_E2E_TEST_CONTROL
             if(!strcmp(line,"ZION QR")) {portENTER_CRITICAL(&s_lock);s_qr_pixels_requested=true;portEXIT_CRITICAL(&s_lock);}
             if(!strcmp(line,"ZION PS ON")) z592_install_test_power_save(1);
@@ -189,10 +327,14 @@ static void console_worker(void *arg) {
                 esp_err_t result=esp_coex_preference_set(mode);
                 ESP_LOGI(TAG,"Z592_TEST_COEX mode=%d result=%d",(int)mode,(int)result);
             }
+#if !ZION_RUNTIME_TEST_KEYS
             if(!strcmp(line,"ZION KEY UP")) inject_key(BSP_BTN_UP,BSP_BTN_CLICK);
             if(!strcmp(line,"ZION KEY DOWN")) inject_key(BSP_BTN_DOWN,BSP_BTN_CLICK);
             if(!strcmp(line,"ZION KEY OK")) inject_key(BSP_BTN_OK,BSP_BTN_CLICK);
             if(!strcmp(line,"ZION KEY LONG")) inject_key(BSP_BTN_OK,BSP_BTN_LONG);
+            if(!strcmp(line,"ZION KEY UPLONG")) inject_key(BSP_BTN_UP,BSP_BTN_LONG);
+            if(!strcmp(line,"ZION KEY DOWNLONG")) inject_key(BSP_BTN_DOWN,BSP_BTN_LONG);
+#endif
 #endif
 #endif
             used=0;
@@ -205,6 +347,7 @@ static status_t status_get(void) {
     status_t copy; portENTER_CRITICAL(&s_lock);copy=s_status;portEXIT_CRITICAL(&s_lock);return copy;
 }
 static void notify_status(void) {
+    if(!atomic_load(&s_ble_running)) return;
     portENTER_CRITICAL(&s_lock);s_status_notifies++;portEXIT_CRITICAL(&s_lock);
     if (s_conn==BLE_HS_CONN_HANDLE_NONE) {
         ESP_LOGW(TAG,"Z592 STATUS_NOTIFY skipped=no_connection");return;
@@ -237,11 +380,11 @@ static bool layout_valid(void) {
 static void wifi_event(void *arg,esp_event_base_t base,int32_t id,void *data) {
     (void)arg;(void)data;
     if (base==IP_EVENT && id==IP_EVENT_STA_GOT_IP) {
-        portENTER_CRITICAL(&s_lock);s_wifi_online=true;portEXIT_CRITICAL(&s_lock);
+        portENTER_CRITICAL(&s_lock);s_wifi_online=true;zion_runtime_network(true);portEXIT_CRITICAL(&s_lock);
         xEventGroupSetBits(s_wifi_bits,BIT0);
         state_set(ONLINE,0);
     } else if (base==WIFI_EVENT && id==WIFI_EVENT_STA_DISCONNECTED) {
-        portENTER_CRITICAL(&s_lock);s_wifi_online=false;portEXIT_CRITICAL(&s_lock);
+        portENTER_CRITICAL(&s_lock);s_wifi_online=false;zion_runtime_network(false);portEXIT_CRITICAL(&s_lock);
         xEventGroupClearBits(s_wifi_bits,BIT0);
     }
 }
@@ -334,9 +477,26 @@ static void install_progress(unsigned stage,unsigned percent,const char *detail,
 #endif
 static void network_worker(void *arg) {
     (void)arg;
+    int64_t reconnect_at=0;
     z592_request_t *job=calloc(1,sizeof(*job));
     if (!job) {state_set(ERROR,1);vTaskDelete(NULL);return;}
     for (;;) {
+        if(atomic_load(&s_native_worker_stop)) {
+            free(job);xEventGroupSetBits(s_wifi_bits,BIT2);vTaskDelete(NULL);return;
+        }
+#if !ZION_RUNTIME_SIM
+        if(zion_runtime_active() && atomic_load(&s_native_keep_wifi)) {
+            /* Radio ownership stays with ZION after entering a native app. */
+            int64_t now=esp_timer_get_time();
+            portENTER_CRITICAL(&s_lock);bool native_online=s_wifi_online;portEXIT_CRITICAL(&s_lock);
+            if(!native_online && now>=reconnect_at) {
+                reconnect_at=now+3000000;
+                (void)esp_wifi_connect();
+            }
+        }
+#else
+        (void)reconnect_at;
+#endif
 #if CONFIG_ZION_LAUNCHER
         if(zion_wifi_ap_expired()) {
             zion_wifi_ap_stop();
@@ -366,12 +526,27 @@ static void network_worker(void *arg) {
             esp_err_t err=ESP_OK;bool cleanup=false;
             if(action==ZION_BOOT || action==ZION_DEFAULT || action==ZION_REMOVE) {
                 const meta_carve_t *c=meta_carve_flash_carve();
-                if(slot<0 || slot>=c->count || c->slot[slot].play_id!=job->file_size) err=ESP_ERR_INVALID_STATE;
+                bool builtin_default=(action==ZION_DEFAULT || action==ZION_REMOVE) && zion_runtime_name(slot)!=NULL;
+                if(!builtin_default && (slot<0 || slot>=c->count || c->slot[slot].play_id!=job->file_size)) err=ESP_ERR_INVALID_STATE;
             }
             if(err==ESP_OK) switch(action) {
             case ZION_BOOT:err=boot_child(slot);break;
-            case ZION_DEFAULT:err=zion_default_update(&s_prefs,zion_default_find(meta_carve_flash_carve(),&s_prefs)==slot?-1:slot);break;
-            case ZION_REMOVE:err=zion_delete(&s_prefs,slot,&cleanup);break;
+            case ZION_DEFAULT:
+                if(zion_runtime_name(slot)) {
+                    bool enabled=zion_runtime_default_slot()!=slot;
+                    if(enabled) err=zion_default_update(&s_prefs,-1);
+                    if(err==ESP_OK && !zion_runtime_set_default(enabled?slot:-1)) err=ESP_FAIL;
+                } else {
+                    err=zion_default_update(&s_prefs,zion_default_find(meta_carve_flash_carve(),&s_prefs)==slot?-1:slot);
+                    if(err==ESP_OK && !zion_runtime_set_default(-1)) err=ESP_FAIL;
+                }
+                break;
+            case ZION_REMOVE:
+                if(slot<=ZION_PACKAGE_SLOT_BASE) {
+                    if(zion_runtime_default_slot()==slot && !zion_runtime_set_default(-1)) err=ESP_FAIL;
+                    if(err==ESP_OK && zion_package_remove(slot)) err=ESP_FAIL;
+                } else err=zion_delete(&s_prefs,slot,&cleanup);
+                break;
             case ZION_FORGET: {
                 zion_wifi_ap_stop();s_ap=false;
                 nvs_handle_t h;err=nvs_open("zion592",NVS_READWRITE,&h);
@@ -442,7 +617,7 @@ static int secure_access(uint16_t conn,uint16_t handle,struct ble_gatt_access_ct
     (void)conn;(void)handle;(void)arg;
     uint8_t p[Z592_TRANSFER_MAX+3];uint16_t n=OS_MBUF_PKTLEN(ctx->om);
     if (!n || n>sizeof(p) || ble_hs_mbuf_to_flat(ctx->om,p,sizeof(p),NULL)) return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
-    if(s_busy) return BLE_ATT_ERR_UNLIKELY;
+    if(s_busy || zion_runtime_active()) return BLE_ATT_ERR_UNLIKELY;
     if (p[0]!=0x0b) ESP_LOGI(TAG,"Z592 SECURE cmd=0x%02x len=%u",p[0],n);
     if (p[0]==0x0a) {
         if(n==4) ESP_LOGI(TAG,"Z592 BEGIN type=%u expected=%u",p[1],(unsigned)p[2]+((unsigned)p[3]<<8));
@@ -534,6 +709,7 @@ static const struct ble_gatt_svc_def services[]={
         {.uuid=BLE_UUID16_DECLARE(0xfff6),.access_cb=secure_access,.flags=BLE_GATT_CHR_F_WRITE},{0}}}, {0}};
 static int gap_event(struct ble_gap_event *event,void *arg);
 static int advertise(void) {
+    if(!atomic_load(&s_ble_running) || s_native_claimed) return 0;
     const ble_uuid16_t uuid=BLE_UUID16_INIT(0xfff0);
     struct ble_hs_adv_fields fields={.flags=BLE_HS_ADV_F_DISC_GEN|BLE_HS_ADV_F_BREDR_UNSUP,
         .name=(const uint8_t *)s_name,.name_len=12,.name_is_complete=1,
@@ -579,13 +755,16 @@ static void on_sync(void) {
 static void host_task(void *arg) {(void)arg;nimble_port_run();nimble_port_freertos_deinit();}
 #if CONFIG_ZION_592_INSTALL
 static void on_key(bsp_btn_t button,bsp_btn_ev_t event,void *context) {
-    (void)context;static unsigned suppressed;
-    if(button>BSP_BTN_OK) return;
-    unsigned bit=1u<<(unsigned)button;
-    if(event==BSP_BTN_PRESS) suppressed&=~bit;
-    if(event==BSP_BTN_LONG) suppressed|=bit;
-    if(event==BSP_BTN_CLICK && (suppressed&bit)) {suppressed&=~bit;return;}
-    key_t key={button,event};
+    (void)context;static zion_runtime_key_gate_t gate;
+    if(zion_runtime_active() && (unsigned)button==3) {
+        zion_runtime_key((unsigned)button,(unsigned)event);return;
+    }
+    /* A held OK spanning software reset can produce a delayed CLICK in the
+     * new launcher. Require a fresh PRESS after the frontend becomes ready. */
+    if(!zion_runtime_key_accept(&gate,(unsigned)button,(unsigned)event,atomic_load(&s_keys_ready))) return;
+    if(zion_runtime_active()) {zion_runtime_key((unsigned)button,(unsigned)event);return;}
+    if(event==BSP_BTN_RELEASE) return;
+    zion_button_msg_t key={button,event};
     if(s_keys) (void)xQueueSend(s_keys,&key,0);
 }
 static esp_err_t boot_child(int slot) {
@@ -652,10 +831,12 @@ void app_main(void) {
 #endif
     if(!layout_valid()) {ESP_LOGE(TAG,"Z592 LOCAL_LAYOUT_REJECTED");return;}
     ESP_ERROR_CHECK(nvs_flash_init()); /* Never erase NVS on initialization failure. */
+    zion_package_recover();
+    zion_runtime_init();
 #if CONFIG_ZION_592_INSTALL
     const esp_partition_t *ota=esp_partition_find_first(ESP_PARTITION_TYPE_DATA,ESP_PARTITION_SUBTYPE_DATA_OTA,NULL);
     if(ota) ESP_ERROR_CHECK(esp_partition_erase_range(ota,0,ota->size));
-    s_keys=xQueueCreate(8,sizeof(key_t));
+    s_keys=xQueueCreate(8,sizeof(zion_button_msg_t));
     if(!s_keys) return;
     ESP_ERROR_CHECK(bsp_button_init(on_key,NULL));
 #if !CONFIG_ZION_LAUNCHER
@@ -666,6 +847,9 @@ void app_main(void) {
 #endif
 #endif
     ESP_ERROR_CHECK(bsp_i2c_init());
+#if ZION_RUNTIME_TEST_KEYS
+    ESP_ERROR_CHECK(heap_caps_register_failed_alloc_callback(allocation_failed));
+#endif
     ESP_ERROR_CHECK(bsp_display_init());
     if(!bsp_lvgl_init()) return;
     bsp_display_backlight(100);(void)bsp_battery_init();
@@ -682,6 +866,9 @@ void app_main(void) {
 #endif
     s_wifi_bits=xEventGroupCreate();s_jobs=xQueueCreate(3,sizeof(z592_request_t));
     if(!s_wifi_bits || !s_jobs) return;
+#if ZION_RUNTIME_SIM
+    ESP_LOGW(TAG,"ZION_RUNTIME_SIM radio=disabled pcm=disabled");
+#else
     ESP_ERROR_CHECK(esp_netif_init());ESP_ERROR_CHECK(esp_event_loop_create_default());
     if(!esp_netif_create_default_wifi_sta()) return;
     ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT,ESP_EVENT_ANY_ID,wifi_event,NULL));
@@ -691,12 +878,12 @@ void app_main(void) {
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));ESP_ERROR_CHECK(esp_wifi_start());
     uint8_t mac[6];ESP_ERROR_CHECK(esp_read_mac(mac,ESP_MAC_WIFI_STA));
     for(unsigned i=0;i<6;i++) snprintf(s_name+2*i,3,"%02x",mac[i]);
-    ESP_ERROR_CHECK(nimble_port_init());ble_svc_gap_init();ble_svc_gatt_init();
+    ESP_ERROR_CHECK(nimble_port_init());atomic_store(&s_ble_running,true);ble_svc_gap_init();ble_svc_gatt_init();
     ESP_ERROR_CHECK(ble_svc_gap_device_name_set(s_name));
     ESP_ERROR_CHECK(ble_gatts_count_cfg(services));ESP_ERROR_CHECK(ble_gatts_add_svcs(services));
     ble_hs_cfg.sync_cb=on_sync;
     if(xTaskCreate(network_worker,"z592-net",CONFIG_ZION_592_INSTALL?8192:6144,NULL,5,NULL)!=pdPASS) return;
-    if(xTaskCreate(console_worker,"z592-console",4096,NULL,3,NULL)!=pdPASS) return;
+    if(xTaskCreate(console_worker,"z592-console",8192,NULL,3,NULL)!=pdPASS) return;
     nimble_port_freertos_init(host_task);
 #if CONFIG_ZION_592_INSTALL
     nvs_handle_t saved;
@@ -713,9 +900,15 @@ void app_main(void) {
         nvs_close(saved);
     }
 #endif
+#endif /* ZION_RUNTIME_SIM */
 #if CONFIG_ZION_LAUNCHER
     ESP_LOGI(TAG,"ZION_PRODUCT ready version=%s",esp_app_get_description()->version);
     zion_launcher_init();
+    atomic_store(&s_keys_ready,true);
+#endif
+#if ZION_RUNTIME_SIM
+    if(xTaskCreate(console_worker,"z592-console",8192,NULL,3,NULL)!=pdPASS) return;
+    if(xTaskCreate(network_worker,"z592-net",8192,NULL,5,NULL)!=pdPASS) return;
 #endif
     unsigned ticks=0;
 #if CONFIG_ZION_LAUNCHER
@@ -723,22 +916,27 @@ void app_main(void) {
 #endif
     for(;;) {
 #if CONFIG_ZION_592_INSTALL
-        key_t key;
+        zion_button_msg_t key;
 #if CONFIG_ZION_LAUNCHER
         if(xQueueReceive(s_keys,&key,pdMS_TO_TICKS(50))==pdTRUE) {
-            bool cancelled=key.event==BSP_BTN_PRESS && zion_launcher_cancel_auto();
+            bool cancelled=!zion_runtime_active() && key.event==BSP_BTN_PRESS && zion_launcher_cancel_auto();
             zion_key_phase_t phase=key.event==BSP_BTN_PRESS?ZION_PRESS_EVENT:key.event==BSP_BTN_CLICK?ZION_CLICK_EVENT:ZION_HOLD_EVENT;
             bool dispatch=(key.event==BSP_BTN_PRESS || key.event==BSP_BTN_CLICK || key.event==BSP_BTN_LONG) &&
                 zion_key_dispatch(&swallowed,(unsigned)key.button,phase,cancelled);
+            if(zion_runtime_active()) {zion_runtime_key((unsigned)key.button,(unsigned)key.event);dispatch=false;}
             if(dispatch && (key.event!=BSP_BTN_LONG || key.button==BSP_BTN_OK))
                 zion_launcher_key(key.event==BSP_BTN_LONG?ZION_LONG:key.button==BSP_BTN_UP?ZION_UP:key.button==BSP_BTN_DOWN?ZION_DOWN:ZION_OK);
         }
-        zion_launcher_tick();
+        if(!zion_runtime_active()) zion_launcher_tick();
+        zion_runtime_tick();
+        /* Native input goes directly to its queue. This manager's large startup
+         * stack has no further owner; the idle hook wakes the plugin after reaping. */
+        if(zion_runtime_manager_done()) vTaskDelete(NULL);
         bool snapshot;portENTER_CRITICAL(&s_lock);snapshot=s_snapshot_requested;s_snapshot_requested=false;portEXIT_CRITICAL(&s_lock);
-        if(snapshot) zion_launcher_snapshot();
+        if(snapshot && !zion_runtime_active()) zion_launcher_snapshot();
 #if CONFIG_META_E2E_TEST_CONTROL
         bool qr_pixels;portENTER_CRITICAL(&s_lock);qr_pixels=s_qr_pixels_requested;s_qr_pixels_requested=false;portEXIT_CRITICAL(&s_lock);
-        if(qr_pixels) zion_launcher_qr_pixels();
+        if(qr_pixels && !zion_runtime_active()) zion_launcher_qr_pixels();
 #endif
 #else
         if(xQueueReceive(s_keys,&key,pdMS_TO_TICKS(50))==pdTRUE && !s_busy) {
@@ -790,10 +988,11 @@ void zion_service_get(zion_service_state_t *v) {
     memcpy(v->detail,s_install_detail,sizeof(v->detail));portEXIT_CRITICAL(&s_lock);
 }
 bool zion_service_request(zion_action_t action,int slot) {
+    if(zion_runtime_active()) return false;
     if(action==ZION_ABORT) {z592_install_cancel();return true;}
     z592_request_t job={.type=(uint8_t)(20+action),.source_offset=(uint32_t)slot};
     portENTER_CRITICAL(&s_lock);
-    if(s_busy || s_boot_at) {portEXIT_CRITICAL(&s_lock);return false;}
+    if(s_busy || s_boot_at || zion_runtime_active()) {portEXIT_CRITICAL(&s_lock);return false;}
     const meta_carve_t *c=meta_carve_flash_carve();
     if(slot>=0 && slot<c->count) job.file_size=c->slot[slot].play_id;
     s_busy=true;s_install_stage=200;if(action==ZION_BOOT) s_boot_requested=true;s_generation++;portEXIT_CRITICAL(&s_lock);
@@ -802,6 +1001,7 @@ bool zion_service_request(zion_action_t action,int slot) {
     portENTER_CRITICAL(&s_lock);s_busy=false;if(action==ZION_BOOT) s_boot_requested=false;s_generation++;portEXIT_CRITICAL(&s_lock);return false;
 }
 bool zion_service_wifi(const char *ssid,const char *password) {
+    if(zion_runtime_active()) return false;
     z592_request_t job={.type=1,.source_offset=1};
     if(strlen(ssid)>32 || strlen(password)>64) return false;
     memcpy(job.ssid,ssid,strlen(ssid)+1);memcpy(job.password,password,strlen(password)+1);
@@ -813,8 +1013,78 @@ bool zion_service_wifi(const char *ssid,const char *password) {
     return queued;
 }
 bool zion_service_scan(void) {
+    if(zion_runtime_active()) return false;
     z592_request_t job={.type=9,.source_offset=1};
     portENTER_CRITICAL(&s_lock);bool busy=s_busy || s_boot_at;portEXIT_CRITICAL(&s_lock);
     return !busy && xQueueSend(s_jobs,&job,0)==pdTRUE;
+}
+bool zion_service_native_claim(void) {
+    portENTER_CRITICAL(&s_lock);
+    bool ok=!s_busy && !s_boot_at && !s_ap;
+    if(ok) {s_native_claimed=true;s_busy=true;s_install_stage=200;s_generation++;}
+    portEXIT_CRITICAL(&s_lock);return ok;
+}
+void zion_service_native_release(void) {
+    portENTER_CRITICAL(&s_lock);
+    if(s_native_claimed) {s_native_claimed=false;s_busy=false;s_generation++;}
+    portEXIT_CRITICAL(&s_lock);
+}
+void zion_service_native_handoff(bool keep_network,bool keep_bluetooth,bool owns_usb) {
+    atomic_store(&s_native_owns_usb,owns_usb);
+    /* The full USB installer is not part of the application's public services. */
+    atomic_store(&s_native_console_stop,true);
+    EventBits_t console=xEventGroupWaitBits(s_wifi_bits,BIT3,pdFALSE,pdFALSE,pdMS_TO_TICKS(1000));
+    if(!(console&BIT3)) ESP_LOGE(TAG,"NATIVE_CONSOLE stop-timeout");
+    atomic_store(&s_native_keep_wifi,keep_network);
+    unsigned before=esp_get_free_heap_size();
+#if !ZION_RUNTIME_SIM
+    if(atomic_exchange(&s_ble_running,false)) {
+        (void)ble_gap_adv_stop();
+        if(s_conn!=BLE_HS_CONN_HANDLE_NONE) (void)ble_gap_terminate(s_conn,BLE_ERR_REM_USER_CONN_TERM);
+        int stopped=nimble_port_stop();esp_err_t deinit=stopped==0?nimble_port_deinit():ESP_FAIL;
+        /* esp_bt_mem_release is irreversible until reset. A BLE application must
+         * be able to initialize its own host and services after this handoff. */
+        esp_err_t released=deinit==ESP_OK && !keep_bluetooth?esp_bt_mem_release(ESP_BT_MODE_BLE):ESP_OK;
+        ESP_LOGI(TAG,"NATIVE_BLE stop=%d deinit=%d release=%d retained=%d",stopped,(int)deinit,(int)released,keep_bluetooth);
+    }
+    if(!keep_network) {
+        atomic_store(&s_native_worker_stop,true);
+        portENTER_CRITICAL(&s_lock);s_boot_requested=true;portEXIT_CRITICAL(&s_lock);
+        xEventGroupSetBits(s_wifi_bits,BIT1);
+        z592_request_t wake={0};(void)xQueueSend(s_jobs,&wake,0);
+        EventBits_t stopped=xEventGroupWaitBits(s_wifi_bits,BIT2,pdFALSE,pdFALSE,pdMS_TO_TICKS(1000));
+        if(stopped&BIT2) {vQueueDelete(s_jobs);s_jobs=NULL;}
+        else ESP_LOGE(TAG,"NATIVE_NETWORK worker-stop-timeout");
+        (void)esp_event_handler_unregister(WIFI_EVENT,ESP_EVENT_ANY_ID,wifi_event);
+        (void)esp_event_handler_unregister(IP_EVENT,IP_EVENT_STA_GOT_IP,wifi_event);
+        (void)esp_wifi_stop();(void)esp_wifi_deinit();
+        esp_netif_t *sta=esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+        if(sta) esp_netif_destroy_default_wifi(sta);
+        portENTER_CRITICAL(&s_lock);s_wifi_online=false;portEXIT_CRITICAL(&s_lock);
+        zion_runtime_network(false);
+    }
+#endif
+    /* Self-deleted FreeRTOS workers release their stacks from the idle task. */
+    vTaskDelay(pdMS_TO_TICKS(10));
+    multi_heap_info_t memory;heap_caps_get_info(&memory,MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT);
+    ESP_LOGI(TAG,"NATIVE_MEMORY free=%u allocated=%u largest=%u",(unsigned)memory.total_free_bytes,
+        (unsigned)memory.total_allocated_bytes,(unsigned)memory.largest_free_block);
+    ESP_LOGI(TAG,"NATIVE_HANDOFF network=%d heap_before=%u heap_after=%lu",keep_network,before,(unsigned long)esp_get_free_heap_size());
+}
+static uint32_t s_package_footprint;
+void zion_service_package_footprint(uint32_t bytes) {
+    portENTER_CRITICAL(&s_lock);s_package_footprint=bytes;portEXIT_CRITICAL(&s_lock);
+}
+void zion_service_package_progress(const char *name,uint32_t received,uint32_t total,int status,const char *detail) {
+    portENTER_CRITICAL(&s_lock);
+    if(received==0 && status==0) {s_install_id++;memset(&s_install_info,0,sizeof(s_install_info));s_package_footprint=0;}
+    s_install_stage=status<0?255:status>0?100:30;
+    s_percent=status>0?100:total?(unsigned)((uint64_t)received*100/total):0;
+    s_install_info.package_bytes=total;s_install_info.received_bytes=received;
+    s_install_info.install_bytes=s_package_footprint?s_package_footprint:(total+4095u)&~4095u;s_install_info.install_known=true;
+    if(name) snprintf(s_install_info.name,sizeof(s_install_info.name),"%s",name);
+    snprintf(s_install_detail,sizeof(s_install_detail),"%s",detail?detail:"");
+    s_result=status<0?ESP_FAIL:ESP_OK;s_generation++;
+    portEXIT_CRITICAL(&s_lock);
 }
 #endif

@@ -1,0 +1,16 @@
+{
+  "id": 2147483664,
+  "key": "uno",
+  "name": "UNO",
+  "sources": [
+    "../../../../candidates/uno/main/app_main.cpp",
+    "../../../../candidates/uno/main/local_room_ui.cpp",
+    "../../../../candidates/uno/main/lv_font_folotoy_cn_18.c",
+    "../../../../candidates/uno/main/passport_board.cpp",
+    "../../../../candidates/uno/main/turn_tone.cpp",
+    "../../../../candidates/uno/main/folotoy_local_room.cc",
+    "../../../../candidates/uno/main/folotoy_uno_game.cc"
+  ],
+  "include_dirs": ["../../../../candidates/uno/main"],
+  "cflags": ["-DLV_LVGL_H_INCLUDE_SIMPLE"]
+}

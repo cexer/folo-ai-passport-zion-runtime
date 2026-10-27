@@ -4,11 +4,23 @@
 
 # AI Agent 仓库规范
 
+## 公共运行时实验覆盖规则
+
+本分支使用 **ESP-IDF 6.0.1**，应运行 `tools/build-runtime.ps1`，先读
+`docs/shared-runtime.zh_CN.md`；原 5.5.3 构建及 2MiB 更新器不适用于该变体。
+交付保持 `ZION_RUNTIME_SIM=OFF`，校验 APP、bootloader、分区表的 factory
+尺寸一致。最小小智使用 1bpp 字体，不打包图片或预录提示音。保留原项目及用户修改，
+未经授权不提交或发布。
+原生玩法从列表直接进入，换玩法通过关机再开机；禁止把长按 OK 占用为重启或返回列表。
+这是独立实验分支，不是正式产品主目录。
+原生 ELF 在 C3 上需要 `CONFIG_ESP_SYSTEM_MEMPROT=n`；不得默默恢复默认不可执行堆配置，
+也不得宣称这种共享地址空间方案提供了进程隔离。
+
 本文是本仓库 AI 辅助工作的唯一必读入口。根据下方路由表读取当前任务所需文档，不要默认加载全部 README。
 
 ## 产品入口与必需技能
 
-本目录为正式 Zion 主项目。默认入口是 `main/zion_service.c`，界面使用
+本目录为公共运行时实验。默认入口是 `main/zion_service.c`，界面使用
 `zion_launcher.c`/`zion_menu.c`，管理使用 `zion_manage.c`。不得将默认产品
 切回旧 `main.c` 或仅捕获请求的探针。开发前检查 passport-develop、passport-setup、
 passport-build、passport-device-test、passport-debug 五项技能；缺少时自行选择

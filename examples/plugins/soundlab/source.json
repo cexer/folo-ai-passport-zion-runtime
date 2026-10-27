@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/Liutupi/nabo-sound-lab",
+  "commit": "e16007ec78a73ac28b9ea3c0b7a3f6a19f30139b",
+  "original_sha256": "f9173b081c15a0e73ca8b837eb25a9cbcc21dab7e2bc730a443e2ed9047b4db6",
+  "license": "MIT (code only; no artwork or voice assets copied)",
+  "adaptation": "Precomputed integer SIN/TANH tables replace initialization-only libm; DSP unchanged"
+}

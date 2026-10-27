@@ -1,0 +1,20 @@
+{
+  "id": 2147483702,
+  "key": "pinball",
+  "name": "Space Pinball",
+  "entry_stack": 8192,
+  "sources": [
+    "../../../../candidates/pinball/main/main.c",
+    "../../../../candidates/pinball/main/pb_physics.c",
+    "../../../../candidates/pinball/main/pb_table.c",
+    "../../../../candidates/pinball/main/pb_game.c",
+    "../../../../candidates/pinball/main/pb_render.c",
+    "../../../../candidates/pinball/main/pb_audio.c",
+    "../../../../candidates/pinball/main/pb_assets.c"
+  ],
+  "include_dirs": ["../../../../candidates/pinball/main"],
+  "platform_include_dirs": ["../../../../candidates/pinball/components/bsp/include"],
+  "embed_files": [
+    {"path": "../../../../candidates/pinball/main/assets/pb_art.bin", "symbol": "pb_art_bin"}
+  ]
+}

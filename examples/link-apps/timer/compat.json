@@ -1,0 +1,27 @@
+{
+  "id": 2147483713,
+  "key": "timer",
+  "name": "Countdown Reminder",
+  "entry_stack": 8192,
+  "sources": [
+    "../../../../candidates/timer/main/main.c",
+    "../../../../candidates/timer/main/ui_pixel.c",
+    "../../../../candidates/timer/main/countdown_timer.c",
+    "../../../../candidates/timer/main/countdown_app.c",
+    "../../../managed_components/lvgl__lvgl/src/font/lv_font_montserrat_48.c"
+  ],
+  "include_dirs": [
+    "../../../../candidates/timer/main"
+  ],
+  "platform_include_dirs": [
+    "../../../../candidates/timer/components/bsp/include"
+  ],
+  "source_flags": {
+    "*/main.c": [
+      "-Wno-error=deprecated-declarations"
+    ]
+  },
+  "cflags": [
+    "-DLV_FONT_MONTSERRAT_48=1"
+  ]
+}

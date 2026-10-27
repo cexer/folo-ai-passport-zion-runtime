@@ -8,12 +8,23 @@
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
 #include "esp_log.h"
+#include "driver/gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include <string.h>
 
 static const char *TAG = "bsp_btn";
 
-static const uint16_t BTN_MV[BSP_BTN_COUNT][2] = BSP_BTN_MV_TABLE;
+enum { BUTTON_CAPACITY=BSP_BTN_COUNT+1 };
+static uint16_t BTN_MV[BUTTON_CAPACITY][2] = BSP_BTN_MV_TABLE;
+static unsigned s_count=BSP_BTN_COUNT;
 
-static button_handle_t s_btn[BSP_BTN_COUNT];
+static button_handle_t s_btn[BUTTON_CAPACITY];
+void *bsp_button_handle(unsigned index) {return index<s_count?s_btn[index]:NULL;}
+unsigned bsp_button_configured_count(void) {return s_count;}
+int bsp_button_key_voltage(unsigned key) {
+    return key<s_count?(int)(((unsigned)BTN_MV[key][0]+BTN_MV[key][1])/2u):-1;
+}
 static bsp_btn_cb_t    s_cb;
 static void           *s_user;
 
@@ -37,9 +48,22 @@ static void cb_press (void *a, void *u) { on_event(a, u, BSP_BTN_PRESS);  }
 static void cb_click (void *a, void *u) { on_event(a, u, BSP_BTN_CLICK);  }
 static void cb_double(void *a, void *u) { on_event(a, u, BSP_BTN_DOUBLE); }
 static void cb_long  (void *a, void *u) { on_event(a, u, BSP_BTN_LONG);   }
+static void cb_release(void *a,void *u) {on_event(a,u,BSP_BTN_RELEASE);}
+
+static esp_err_t release_hardware(void) {
+    s_cb=NULL;
+    for(unsigned i=0;i<BUTTON_CAPACITY;i++) if(s_btn[i]) {
+        esp_err_t e=iot_button_delete(s_btn[i]);if(e!=ESP_OK) return e;s_btn[i]=NULL;
+    }
+    if(s_cali) {esp_err_t e=adc_cali_delete_scheme_curve_fitting(s_cali);if(e!=ESP_OK) return e;s_cali=NULL;}
+    if(s_adc) {esp_err_t e=adc_oneshot_del_unit(s_adc);if(e!=ESP_OK) return e;s_adc=NULL;}
+    return ESP_OK;
+}
 
 esp_err_t bsp_button_init(bsp_btn_cb_t cb, void *user) {
-    s_cb = cb; s_user = user;
+    s_user=user;
+    if(s_adc) {s_cb=cb;return ESP_OK;}
+    s_cb=NULL;
 
     // 先由 BSP 建 unit,再把句柄交给 button 组件(button_adc.h:adc_handle 非 NULL 即复用),
     // 这样本文件的 bsp_button_read_mv() 也能读同一路 ADC。
@@ -51,7 +75,7 @@ esp_err_t bsp_button_init(bsp_btn_cb_t cb, void *user) {
         return ae;
     }
 
-    for (int i = 0; i < BSP_BTN_COUNT; i++) {
+    for (unsigned i = 0; i < s_count; i++) {
         const button_adc_config_t ac = {
             .adc_handle   = &s_adc,          // 复用上面这一个,别让组件自建
             .unit_id      = BSP_BTN_ADC_UNIT,
@@ -64,16 +88,22 @@ esp_err_t bsp_button_init(bsp_btn_cb_t cb, void *user) {
         esp_err_t e = iot_button_new_adc_device(&bc, &ac, &s_btn[i]);
         if (e != ESP_OK || !s_btn[i]) {
             ESP_LOGE(TAG, "按键 %d 创建失败 (%s) —— 检查 GPIO%d 的 ADC 配置与分压电阻",
-                     i, esp_err_to_name(e), BSP_BTN_ADC_CHANNEL);
-            return e == ESP_OK ? ESP_FAIL : e;
+                     (int)i, esp_err_to_name(e), BSP_BTN_ADC_CHANNEL);
+            esp_err_t result=e==ESP_OK?ESP_FAIL:e;
+            (void)release_hardware();return result;
         }
         void *idx = (void *)(intptr_t)i;
         // LONG 用显式时长注册(BSP_BTN_LONG_MS,见头文件注释)。
         button_event_args_t long_args = { .long_press = { .press_time = BSP_BTN_LONG_MS } };
-        iot_button_register_cb(s_btn[i], BUTTON_PRESS_DOWN,      NULL,        cb_press,  idx);
-        iot_button_register_cb(s_btn[i], BUTTON_SINGLE_CLICK,    NULL,        cb_click,  idx);
-        iot_button_register_cb(s_btn[i], BUTTON_DOUBLE_CLICK,    NULL,        cb_double, idx);
-        iot_button_register_cb(s_btn[i], BUTTON_LONG_PRESS_START,&long_args,  cb_long,   idx);
+        const struct {button_event_t event;button_event_args_t *args;button_cb_t callback;} events[]={
+            {BUTTON_PRESS_DOWN,NULL,cb_press},{BUTTON_PRESS_UP,NULL,cb_release},
+            {BUTTON_SINGLE_CLICK,NULL,cb_click},{BUTTON_DOUBLE_CLICK,NULL,cb_double},
+            {BUTTON_LONG_PRESS_START,&long_args,cb_long}
+        };
+        for(unsigned j=0;j<sizeof(events)/sizeof(events[0]);j++) {
+            e=iot_button_register_cb(s_btn[i],events[j].event,events[j].args,events[j].callback,idx);
+            if(e!=ESP_OK) {(void)release_hardware();return e;}
+        }
     }
 
     // 通道已由组件配置好,这里只补一份校准句柄给 bsp_button_read_mv() 用。
@@ -90,9 +120,38 @@ esp_err_t bsp_button_init(bsp_btn_cb_t cb, void *user) {
     }
 
     ESP_LOGI(TAG, "按键就绪:ADC1_CH%d 三键分压", BSP_BTN_ADC_CHANNEL);
-    return ESP_OK;
+    s_cb=cb;return ESP_OK;
 }
 
+esp_err_t bsp_button_configure_ranges(unsigned count,const uint16_t (*ranges)[2]) {
+    if(!ranges || count<BSP_BTN_COUNT || count>BUTTON_CAPACITY) return ESP_ERR_INVALID_ARG;
+    for(unsigned i=0;i<count;i++) {
+        if(ranges[i][0]>=ranges[i][1] || ranges[i][1]>1900) return ESP_ERR_INVALID_ARG;
+        for(unsigned j=0;j<i;j++)
+            if(ranges[i][0]<ranges[j][1] && ranges[j][0]<ranges[i][1]) return ESP_ERR_INVALID_ARG;
+    }
+    if(count==s_count && !memcmp(BTN_MV,ranges,count*sizeof(*ranges))) return ESP_OK;
+    bsp_btn_cb_t callback=s_cb;void *user=s_user;unsigned old_count=s_count;
+    uint16_t previous[BUTTON_CAPACITY][2];memcpy(previous,BTN_MV,sizeof(previous));
+    esp_err_t result=release_hardware();if(result!=ESP_OK) {s_cb=callback;return result;}
+    memcpy(BTN_MV,ranges,count*sizeof(*ranges));s_count=count;
+    result=bsp_button_init(callback,user);
+    if(result!=ESP_OK) {
+        (void)release_hardware();memcpy(BTN_MV,previous,sizeof(previous));s_count=old_count;
+        esp_err_t restored=bsp_button_init(callback,user);
+        ESP_LOGE(TAG,"BUTTON_PROFILE failed=%d restored=%d",(int)result,(int)restored);
+        return result;
+    }
+    ESP_LOGI(TAG,"BSP_BUTTON_PROFILE entries=%u",count);return ESP_OK;
+}
+
+esp_err_t bsp_button_prepare_deep_sleep(int *level) {
+    esp_err_t e=release_hardware();if(e!=ESP_OK) return e;
+    e=gpio_set_direction(BSP_BTN_GPIO,GPIO_MODE_INPUT);
+    if(e==ESP_OK) e=gpio_set_pull_mode(BSP_BTN_GPIO,GPIO_PULLUP_ONLY);
+    if(e==ESP_OK) {vTaskDelay(pdMS_TO_TICKS(20));if(level) *level=gpio_get_level(BSP_BTN_GPIO);}
+    return e;
+}
 int bsp_button_read_mv(void) {
     // 读的是 bsp_button_init() 建好、并与 iot_button 共用的那一路 ADC。
     // 单次采样与组件的按键轮询互不干扰(oneshot 内部自带锁)。

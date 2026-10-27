@@ -14,3 +14,10 @@ int bsp_battery_soc(void);
 
 // 电池电压 mV;读失败返回 -1。
 int bsp_battery_mv(void);
+/* Poll/log surface used by Passport OS. This BSP's getters read the gauge
+ * synchronously, so polling needs no second cached SOC implementation. */
+void bsp_battery_poll(void);
+void bsp_battery_log_status(void);
+
+/* Terminal preparation; reboot before using the peripheral again. */
+esp_err_t bsp_battery_sleep(void);

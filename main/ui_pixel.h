@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lvgl.h"
+#include "zion_fonts.h"
 
 #define UI_SKY        0x101912
 #define UI_SKY_DARK   0x81966B
@@ -13,8 +14,6 @@
 #define UI_ORANGE     0xFFB23E
 #define UI_RED        0xE43B2F
 #define UI_MUTED      0xD9E7EC
-LV_FONT_DECLARE(zion_font_14);
-#define ZION_FONT (&zion_font_14)
 
 lv_obj_t *ui_pixel_screen_create(const char *title);
 lv_obj_t *ui_pixel_panel_create(lv_obj_t *parent, int x, int y, int w, int h,

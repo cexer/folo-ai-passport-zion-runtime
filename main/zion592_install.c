@@ -14,7 +14,7 @@
 #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "mbedtls/sha256.h"
+#include "psa/crypto.h"
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
@@ -22,6 +22,8 @@
 #include <stdio.h>
 
 static const char *TAG="z592-install";
+static bool s_flash_source_enabled;
+static uint32_t s_flash_source_offset;
 static atomic_bool s_cancelled;
 static atomic_int s_test_power_save=-1;
 void z592_install_test_power_save(int enabled) {
@@ -169,15 +171,18 @@ static esp_err_t write_chunk(install_t *s,const uint8_t *bytes,uint32_t offset,u
 }
 static esp_err_t download(install_t *s,bool writing) {
     meta_carve_flash_workspace_release();
+    bool local=s_flash_source_enabled;
+    esp_err_t err=ESP_OK;esp_http_client_handle_t client=NULL;
+    if(!local) {
     esp_http_client_config_t cfg={.url=s->request->url,.crt_bundle_attach=esp_crt_bundle_attach,
         .timeout_ms=20000,.buffer_size=1024,.buffer_size_tx=1024,.disable_auto_redirect=true,.addr_type=HTTP_ADDR_TYPE_INET,
         .tls_dyn_buf_strategy=HTTP_TLS_DYN_BUF_RX_STATIC};
-    esp_http_client_handle_t client=esp_http_client_init(&cfg);
+    client=esp_http_client_init(&cfg);
     if(!client) {s->failure="https-client-allocation";return ESP_ERR_NO_MEM;}
-    esp_err_t err=esp_http_client_open(client,0);
+    err=esp_http_client_open(client,0);
     if(err!=ESP_OK) {
         int tls_code=0,tls_flags=0;
-        esp_err_t tls_err=esp_http_client_get_and_clear_last_tls_error(client,&tls_code,&tls_flags);
+        esp_err_t tls_err=client?esp_http_client_get_and_clear_last_tls_error(client,&tls_code,&tls_flags):ESP_FAIL;
         ESP_LOGE(TAG,"Z592_TLS open=%d transport=%d tls=%d flags=%d heap=%lu largest=%lu stack=%u",
             (int)err,(int)tls_err,tls_code,tls_flags,(unsigned long)esp_get_free_heap_size(),
             (unsigned long)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT),(unsigned)uxTaskGetStackHighWaterMark(NULL));
@@ -191,7 +196,9 @@ static esp_err_t download(install_t *s,bool writing) {
         ESP_LOGE(TAG,"HTTP contract status=%d length=%lld expected=%lu",status,(long long)length,(unsigned long)s->request->file_size);
         s->failure="https-status-or-length";esp_http_client_cleanup(client);return ESP_ERR_INVALID_RESPONSE;
     }
-    mbedtls_sha256_context sha;mbedtls_sha256_init(&sha);mbedtls_sha256_starts(&sha,0);
+    }
+    psa_hash_operation_t sha=PSA_HASH_OPERATION_INIT;
+    if(psa_crypto_init()!=PSA_SUCCESS || psa_hash_setup(&sha,PSA_ALG_SHA_256)!=PSA_SUCCESS) {psa_hash_abort(&sha);s->failure="sha256-init";if(client) esp_http_client_cleanup(client);return ESP_FAIL;}
     int64_t pass_start=esp_timer_get_time();
     uint32_t pass_cpu_start=task_cpu_us();
     s->read_us=0;s->write_us=0;s->read_cpu_us=0;s->last_report_us=pass_start;
@@ -204,7 +211,7 @@ static esp_err_t download(install_t *s,bool writing) {
         if(want>1024) want=1024;
         int64_t read_start=esp_timer_get_time();errno=0;
         uint32_t cpu_start=task_cpu_us();
-        int got=esp_http_client_read(client,(char *)s->buffer,want);
+        int got=local?(esp_flash_read(NULL,s->buffer,s_flash_source_offset+received,want)==ESP_OK?(int)want:-1):esp_http_client_read(client,(char *)s->buffer,want);
         s->read_cpu_us+=(uint32_t)(task_cpu_us()-cpu_start);
         int64_t read_duration=esp_timer_get_time()-read_start;
         s->read_us+=read_duration;
@@ -216,7 +223,7 @@ static esp_err_t download(install_t *s,bool writing) {
         }
         if(got<=0) {
             int read_errno=errno,tls_code=0,tls_flags=0;
-            esp_err_t tls_err=esp_http_client_get_and_clear_last_tls_error(client,&tls_code,&tls_flags);
+            esp_err_t tls_err=client?esp_http_client_get_and_clear_last_tls_error(client,&tls_code,&tls_flags):ESP_FAIL;
             ESP_LOGE(TAG,"Z592_READ_ERROR returned=%d errno=%d transport=%d tls=%d flags=%d heap=%lu largest=%lu received=%lu",
                 got,read_errno,(int)tls_err,tls_code,tls_flags,(unsigned long)esp_get_free_heap_size(),
                 (unsigned long)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT),(unsigned long)received);
@@ -226,7 +233,7 @@ static esp_err_t download(install_t *s,bool writing) {
             break;
         }
         stalls=0;
-        mbedtls_sha256_update(&sha,s->buffer,(size_t)got);
+        if(psa_hash_update(&sha,s->buffer,(size_t)got)!=PSA_SUCCESS) {err=ESP_FAIL;s->failure="sha256-update";break;}
         if(!z592_image_feed(s->image,s->buffer,(size_t)got)) {err=ESP_ERR_INVALID_RESPONSE;s->failure=s->image->error;}
         if(err==ESP_OK && writing) {
             int64_t write_start=esp_timer_get_time();
@@ -273,8 +280,10 @@ static esp_err_t download(install_t *s,bool writing) {
             s->started_us=now;
         }
     }
-    uint8_t actual[32];mbedtls_sha256_finish(&sha,actual);mbedtls_sha256_free(&sha);
-    esp_http_client_close(client);esp_http_client_cleanup(client);
+    uint8_t actual[32];size_t hash_len=0;
+    if(psa_hash_finish(&sha,actual,sizeof(actual),&hash_len)!=PSA_SUCCESS || hash_len!=sizeof(actual)) {if(err==ESP_OK) {err=ESP_FAIL;s->failure="sha256-finish";}}
+    psa_hash_abort(&sha);
+    if(client) {esp_http_client_close(client);esp_http_client_cleanup(client);}
     s->info.elapsed_ms=(uint32_t)((esp_timer_get_time()-pass_start)/1000);
     s->info.bytes_per_second=s->info.elapsed_ms?(uint32_t)(((uint64_t)received*1000)/s->info.elapsed_ms):0;
     s->info.read_ms=(uint32_t)(s->read_us/1000);s->info.write_ms=(uint32_t)(s->write_us/1000);
@@ -337,14 +346,17 @@ static esp_err_t finalize(install_t *s) {
         err=write_checked(slot->offset+((a->image_len+4095)&~4095u)+META_NAME_BLOB_OFF,blob,sizeof(blob));
     }
     if(err!=ESP_OK) {s->failure="name-metadata-write";return err;}
-    mbedtls_sha256_context sha;mbedtls_sha256_init(&sha);mbedtls_sha256_starts(&sha,0);
+    psa_hash_operation_t sha=PSA_HASH_OPERATION_INIT;
+    if(psa_crypto_init()!=PSA_SUCCESS || psa_hash_setup(&sha,PSA_ALG_SHA_256)!=PSA_SUCCESS) {psa_hash_abort(&sha);s->failure="sha256-init";return ESP_FAIL;}
     for(uint32_t at=0;at<a->image_len;) {
         uint32_t n=a->image_len-at>1024?1024:a->image_len-at;
         err=esp_flash_read(NULL,s->buffer,slot->offset+at,n);
         if(err!=ESP_OK) break;
-        mbedtls_sha256_update(&sha,s->buffer,n);at+=n;
+        if(psa_hash_update(&sha,s->buffer,n)!=PSA_SUCCESS) {err=ESP_FAIL;s->failure="sha256-readback";break;}at+=n;
     }
-    uint8_t digest[32];mbedtls_sha256_finish(&sha,digest);mbedtls_sha256_free(&sha);
+    uint8_t digest[32];size_t hash_len=0;
+    if(psa_hash_finish(&sha,digest,sizeof(digest),&hash_len)!=PSA_SUCCESS || hash_len!=sizeof(digest)) {if(err==ESP_OK) {err=ESP_FAIL;s->failure="sha256-finish";}}
+    psa_hash_abort(&sha);
     if(err!=ESP_OK) return err;
     slot->state=META_SLOT_VALID;slot->image_len=a->image_len;
     memcpy(slot->image_sha256,digest,32);strcpy(slot->name,name);
@@ -543,4 +555,14 @@ esp_err_t z592_boot_installed(int slot) {
     const esp_partition_t *p=esp_partition_find_first(ESP_PARTITION_TYPE_APP,
         (esp_partition_subtype_t)(ESP_PARTITION_SUBTYPE_APP_OTA_0+slot),NULL);
     return p?esp_ota_set_boot_partition(p):ESP_ERR_NOT_FOUND;
+}
+
+esp_err_t z592_install_flash(uint32_t offset,uint32_t size,const uint8_t sha256[32],z592_progress_fn cb,void *context,int *slot) {
+    /* This transport stages an APP image, not a merged partitioned image. */
+    z592_request_t request={.source_offset=0,.file_size=size};memcpy(request.sha256,sha256,32);
+    memcpy(request.url,"usb-sha256:",11);
+    for(unsigned i=0;i<32;i++) snprintf(request.url+11+i*2,3,"%02x",sha256[i]);
+    s_flash_source_offset=offset;s_flash_source_enabled=true;z592_install_prepare();
+    esp_err_t result=z592_install_request(&request,cb,context,slot);
+    s_flash_source_enabled=false;return result;
 }

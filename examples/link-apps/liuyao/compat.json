@@ -1,0 +1,39 @@
+{
+  "id": 2147483709,
+  "key": "liuyao",
+  "name": "Liuyao and Dressing",
+  "entry_stack": 8192,
+  "sources": [
+    "../../../../candidates/liuyao/fw/main/main.c",
+    "../../../../candidates/liuyao/fw/main/app_port_impl.c",
+    "../../../../candidates/liuyao/ui/ui_theme.c",
+    "../../../../candidates/liuyao/ui/app_ui.c",
+    "../../../../candidates/liuyao/ui/view_dressing.c",
+    "../../../../candidates/liuyao/ui/view_liuyao.c",
+    "../../../../candidates/liuyao/ui/hexagram.c",
+    "../../../../candidates/liuyao/ui/liuyao_sound.c",
+    "../../../../candidates/liuyao/ui/view_launcher.c",
+    "../../../../candidates/liuyao/ui/standby.c",
+    "../../../../candidates/liuyao/ui/ganzhi.c",
+    "../../../../candidates/liuyao/ui/th_fonts_static.c",
+    "../../../../candidates/liuyao/algo/dressing.c",
+    "../../../../candidates/liuyao/ui/fonts/lv_font_kai_48.c",
+    "../../../../candidates/liuyao/ui/fonts/lv_font_kai_34.c",
+    "../../../../candidates/liuyao/ui/fonts/lv_font_sans_18.c",
+    "../../../../candidates/liuyao/ui/fonts/lv_font_sans_16.c",
+    "../../../../candidates/liuyao/ui/fonts/lv_font_sans_14.c"
+  ],
+  "include_dirs": [
+    "../../../../candidates/liuyao/fw/main",
+    "../../../../candidates/liuyao/ui",
+    "../../../../candidates/liuyao/algo"
+  ],
+  "platform_include_dirs": [
+    "../../../../candidates/liuyao/fw/components/bsp/include"
+  ],
+  "source_flags": {
+    "*/main.c": [
+      "-Wno-error=deprecated-declarations"
+    ]
+  }
+}

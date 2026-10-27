@@ -1,0 +1,47 @@
+{
+  "id": 2147483666,
+  "key": "soundlab-all",
+  "name": "soundlab-original",
+  "sources": [
+    "../../../../candidates/nabo-sound-lab/firmware/main/main.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/mic/nabo_mic.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/voice/nabo_voice.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/gfx/fc_gfx.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/gfx/fc_res.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/ui/duel_model.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/ui/duel_rules.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/ui/newgames_model.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/ui/sc_core.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/ui/sc_duel.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/ui/sc_echo.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/ui/sc_guitar.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/ui/sc_newgames.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/ui/sc_tools.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/ui/sc_toys.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/ui/sc_viz.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/ui/scenes.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/ui/sl_audio.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/ui/sl_sampler.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/ui/sl_ui.c",
+    "../../../../candidates/nabo-sound-lab/firmware/main/link/sd_radio.c"
+  ],
+  "include_dirs": [
+    "../../../../candidates/nabo-sound-lab/firmware/main",
+    "../../../../candidates/nabo-sound-lab/firmware/main/mic",
+    "../../../../candidates/nabo-sound-lab/firmware/main/voice",
+    "../../../../candidates/nabo-sound-lab/firmware/main/gfx",
+    "../../../../candidates/nabo-sound-lab/firmware/main/ui",
+    "../../../../candidates/nabo-sound-lab/firmware/main/link"
+  ],
+  "cflags": [
+    "-Wno-unused-function",
+    "-Wno-format-truncation",
+    "-Wno-deprecated-declarations"
+  ],
+  "platform_include_dirs": [
+    "../../../../candidates/nabo-sound-lab/firmware/components/bsp/include"
+  ],
+  "compat_headers": [
+    "legacy-declarations.h"
+  ]
+}

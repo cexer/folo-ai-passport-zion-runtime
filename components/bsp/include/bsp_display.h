@@ -19,6 +19,11 @@ esp_lcd_panel_io_handle_t bsp_display_io(void);
 
 // 背光亮度 0..100(%)。LEDC PWM,0=全灭。
 void bsp_display_backlight(uint8_t percent);
+/* Passport OS separates per-page brightness from the user's master setting. */
+void bsp_display_set_master_brightness(uint8_t percent);
+uint8_t bsp_display_get_master_brightness(void);
+/* Caller serializes against rendering. Wake includes the ST7789 sleep-out delay. */
+void bsp_display_power(bool on);
 
 // ---------------------------------------------------------------------------
 // LVGL 接入(可选层)。必须先 bsp_display_init() 成功后再调。
@@ -31,6 +36,13 @@ struct _lv_display_t;
 // 启动 LVGL 与其渲染任务,返回 lv_display_t*。失败返回 NULL。
 struct _lv_display_t *bsp_lvgl_init(void);
 
+/* Set logical 320x240 landscape or 240x320 portrait using panel rotation.
+ * Caller holds bsp_lvgl_lock(); no additional frame buffer is allocated. */
+esp_err_t bsp_lvgl_set_landscape(bool landscape);
+
 // LVGL 非线程安全:在【非 LVGL 任务】里操作任何 lv_* 对象前后必须加解锁。
 bool bsp_lvgl_lock(int timeout_ms);
 void bsp_lvgl_unlock(void);
+
+/* Terminal preparation; reboot before using the peripheral again. */
+esp_err_t bsp_display_prepare_deep_sleep(void);

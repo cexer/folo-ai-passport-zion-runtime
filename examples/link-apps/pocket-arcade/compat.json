@@ -1,0 +1,47 @@
+{
+  "id": 2147483715,
+  "key": "arcade",
+  "name": "Pocket Arcade",
+  "entry_stack": 8192,
+  "sources": [
+    "../../../../candidates/pocket-arcade/main/main.c",
+    "../../../../candidates/pocket-arcade/main/ui_pixel.c",
+    "../../../../candidates/pocket-arcade/main/ui_pixel_math.c",
+    "../../../../candidates/pocket-arcade/main/demo_party.c",
+    "../../../../candidates/pocket-arcade/main/demo_shengbei.c",
+    "../../../../candidates/pocket-arcade/main/demo_breakout.c",
+    "../../../../candidates/pocket-arcade/main/demo_snake.c",
+    "../../../../candidates/pocket-arcade/main/demo_memory.c",
+    "../../../../candidates/pocket-arcade/main/app_boot.c",
+    "../../../../candidates/pocket-arcade/main/app_bgm.c",
+    "../../../../candidates/pocket-arcade/main/app_settings.c",
+    "../../../../candidates/pocket-arcade/main/font_zh14.c",
+    "../../../../candidates/pocket-arcade/main/font_zh20.c",
+    "../../../../candidates/pocket-arcade/main/font_game.c",
+    "../../../../candidates/pocket-arcade/main/party_award_b.c",
+    "../../../../candidates/pocket-arcade/main/fap_screenshot.c"
+  ],
+  "include_dirs": [
+    "../../../../candidates/pocket-arcade/main"
+  ],
+  "platform_include_dirs": [
+    "../../../../candidates/pocket-arcade/components/bsp/include"
+  ],
+  "usb": true,
+  "storage": {
+    "label": "spiffs",
+    "bytes": 131072,
+    "filesystem": "spiffs"
+  },
+  "cflags": [
+    "-DFW_VERSION=\"1.0.0\""
+  ],
+  "idf_include_dirs": [
+    "components/spiffs/include"
+  ],
+  "source_flags": {
+    "*/demo_party.c": [
+      "-Wno-error=unused-function"
+    ]
+  }
+}

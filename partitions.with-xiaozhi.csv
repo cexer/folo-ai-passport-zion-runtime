@@ -1,0 +1,11 @@
+# Name, Type, SubType, Offset, Size, Flags
+nvs, data, nvs, 0x9000, 0x6000,
+phy_init, data, phy, 0xf000, 0x1000,
+# Passport OS adds shared JPEG, SPIFFS, PM, crypto/Opus and SDK link hooks.
+# Keep the protected identity and the larger second install pool unchanged.
+factory, app, factory, 0x10000, 0x2D2000,
+pool_0, data, 0x40, 0x2E2000, 0x74000,
+cardid, data, nvs, 0x356000, 0x4000,
+store, data, nvs, 0x35A000, 0x6000,
+pool_1, data, 0x40, 0x360000, 0x49E000,
+otadata, data, ota, 0x7FE000, 0x2000,

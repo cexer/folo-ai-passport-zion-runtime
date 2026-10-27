@@ -1,0 +1,41 @@
+{
+  "id": 2147483714,
+  "key": "xiaoliuren",
+  "name": "Xiao Liu Ren",
+  "entry_stack": 8192,
+  "sources": [
+    "../../../../candidates/xiaoliuren/main/main.c",
+    "../../../../candidates/xiaoliuren/main/xlr_app.c",
+    "../../../../candidates/xiaoliuren/main/xlr_logic.c",
+    "../../../../candidates/xiaoliuren/main/xlr_net.c",
+    "../../../../candidates/xiaoliuren/main/xlr_portal.c",
+    "../../../../candidates/xiaoliuren/main/xlr_net_form.c",
+    "../../../../candidates/xiaoliuren/main/xlr_calendar.c",
+    "../../../../candidates/xiaoliuren/main/lunar.c",
+    "../../../../candidates/xiaoliuren/main/xlr_font_16.c",
+    "../../../../candidates/xiaoliuren/main/xlr_font_display_48.c",
+    "../../../../candidates/xiaoliuren/main/xlr_finger_guide.c",
+    "../../../../candidates/xiaoliuren/main/xlr_paper_texture.c",
+    "../../../managed_components/lvgl__lvgl/src/font/lv_font_montserrat_48.c"
+  ],
+  "include_dirs": [
+    "../../../../candidates/xiaoliuren/main"
+  ],
+  "platform_include_dirs": [
+    "../../../../candidates/xiaoliuren/components/bsp/include"
+  ],
+  "cflags": [
+    "-DLV_FONT_MONTSERRAT_48=1"
+  ],
+  "idf_include_dirs": [
+    "components/wpa_supplicant/esp_supplicant/include"
+  ],
+  "source_flags": {
+    "*/xlr_net.c": [
+      "-Wno-error=sign-compare"
+    ]
+  },
+  "compat_headers": [
+    "../common/idf5-dpp.h"
+  ]
+}

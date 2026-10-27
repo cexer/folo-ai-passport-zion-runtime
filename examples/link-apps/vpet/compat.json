@@ -1,0 +1,27 @@
+{
+  "id": 2147483703,
+  "key": "vpet",
+  "name": "V-Pet",
+  "entry_stack": 8192,
+  "bluetooth": true,
+  "sources": [
+    "../../../../candidates/vpet/firmware/main/main.c",
+    "../../../../candidates/vpet/firmware/main/ui_pixel.c",
+    "../../../../candidates/vpet/firmware/main/ui_pixel_math.c",
+    "../../../../candidates/vpet/firmware/main/vpet_app.c",
+    "../../../../candidates/vpet/firmware/main/vpet_audio.c",
+    "../../../../candidates/vpet/firmware/main/vpet_battle.c",
+    "../../../../candidates/vpet/firmware/main/vpet_link.c",
+    "../../../../candidates/vpet/firmware/main/vpet_model.c",
+    "../../../../candidates/vpet/firmware/main/vpet_species.c",
+    "../../../../candidates/vpet/firmware/main/vpet_sprite.c",
+    "../../../../candidates/vpet/firmware/main/vpet_store.c",
+    "../../../../candidates/vpet/firmware/main/vpet_view.c",
+    "../../../../candidates/vpet/firmware/main/vpet_font_16.c",
+    "context-lifetime.c"
+  ],
+  "include_dirs": ["../../../../candidates/vpet/firmware/main"],
+  "platform_include_dirs": ["../../../../candidates/vpet/firmware/components/bsp/include"],
+  "source_flags": {"*/vpet_view.c": ["-Wno-error=sign-compare"]},
+  "link_wrap": ["vpet_app_start"]
+}

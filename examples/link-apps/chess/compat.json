@@ -1,0 +1,57 @@
+{
+  "id": 2147483711,
+  "key": "chess",
+  "name": "Pocket Chess",
+  "entry_stack": 8192,
+  "sources": [
+    "../../../../candidates/chess/main/app_main.c",
+    "../../../../candidates/chess/main/chess_app.c",
+    "../../../../candidates/chess/main/chess_ui.c",
+    "../../../../candidates/chess/main/chess_board_draw.c",
+    "../../../../candidates/chess/main/chess_nvs_esp.c",
+    "../../../../candidates/chess/main/chess_ai_task.c",
+    "../../../../candidates/chess/assets/fonts/chess_zh_18.c",
+    "../../../../candidates/chess/components/chess_ai/chess_ai.c",
+    "../../../../candidates/chess/components/chess_ai/opening_book.c",
+    "../../../../candidates/chess/third_party/mcu-max/mcu-max.c",
+    "../../../../candidates/chess/third_party/mcu-max/mcumax_hash_scramble_table.c",
+    "../../../../candidates/chess/components/chess_core/chess_position.c",
+    "../../../../candidates/chess/components/chess_core/chess_fen.c",
+    "../../../../candidates/chess/components/chess_core/chess_moves.c",
+    "../../../../candidates/chess/components/chess_core/chess_game.c",
+    "../../../../candidates/chess/components/chess_i18n/chess_i18n.c",
+    "../../../../candidates/chess/components/chess_power/chess_power.c",
+    "../../../../candidates/chess/components/chess_storage/chess_codec.c",
+    "../../../../candidates/chess/components/chess_storage/chess_nvs.c",
+    "../../../../candidates/chess/components/chess_ui_model/chess_ui_model.c"
+  ],
+  "include_dirs": [
+    "../../../../candidates/chess/main",
+    "../../../../candidates/chess/main",
+    "../../../../candidates/chess/components/chess_ai",
+    "../../../../candidates/chess/components/chess_ai/include",
+    "../../../../candidates/chess/components/chess_core",
+    "../../../../candidates/chess/components/chess_core/include",
+    "../../../../candidates/chess/components/chess_i18n",
+    "../../../../candidates/chess/components/chess_i18n/include",
+    "../../../../candidates/chess/components/chess_power",
+    "../../../../candidates/chess/components/chess_power/include",
+    "../../../../candidates/chess/components/chess_storage",
+    "../../../../candidates/chess/components/chess_storage/include",
+    "../../../../candidates/chess/components/chess_ui_model",
+    "../../../../candidates/chess/components/chess_ui_model/include",
+    "../../../../candidates/chess/third_party/mcu-max"
+  ],
+  "platform_include_dirs": [
+    "../../../../candidates/chess/components/bsp/include"
+  ],
+  "cflags": [
+    "-DMCUMAX_HASH_BITS=12"
+  ],
+  "source_flags": {
+    "*/mcu-max.c": [
+      "-Wno-error",
+      "-mstrict-align"
+    ]
+  }
+}

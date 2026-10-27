@@ -1,0 +1,33 @@
+{
+  "converter": "lv_font_conv 1.5.3",
+  "source_sha256": "a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da",
+  "resolved_weight": 600,
+  "source_url": "https://github.com/google/fonts/tree/main/ofl/notosanssc",
+  "license": "SIL OFL 1.1",
+  "bpp": 4,
+  "compressed": false,
+  "ui_sources": [
+    "main/zion_launcher.c",
+    "main/zion_text.c",
+    "main/zion_install_view.c"
+  ],
+  "fonts": [
+    {
+      "name": "zion_font_ui_14",
+      "size": 14,
+      "characters": 346,
+      "symbols": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~、一上下不与中为也交从代件任会传位作保信候值储像先入关内写准出击分列初删到前功动包化匹区占即原及发取变叠可名后启器回因围在地址型处备复大失头始存安完官定容密对将小尚就尾局层工已布常并序应度建开异当录待微忙态恢意成或户手打扫找拒择持按换据接描提握撤操擦支收效数整文新方无时暂更有未本机束析查校检槽次款正此法浏消清源满点热版牙状玩理生用由留登的知短码确示社称移程稍空立端符等签管类结络绝绪续网置联能自范获蓝行表被装览解认记设证试话误请读调败资超足路载输运返进连选速部配重量销错键镜长闲间队除需验默（），：？",
+      "fallback": "zion_font_14",
+      "c_sha256": "97d72af772df4089568b79b5ca313f64127918a70cee57d58899a1895fc2aa28"
+    },
+    {
+      "name": "zion_font_ui_10",
+      "size": 10,
+      "characters": 95,
+      "symbols": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
+      "fallback": "zion_font_ui_14",
+      "c_sha256": "7a33ab529645956d00da5b619449896907285e48f5c6da7a37a98916b490e8ad"
+    }
+  ],
+  "fallback_probe_codepoint": 40864
+}

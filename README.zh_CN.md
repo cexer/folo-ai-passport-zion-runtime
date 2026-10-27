@@ -2,6 +2,8 @@
 
 # ZION 多玩法小程序管理器
 
+**公共运行时 / ELF 实验：**使用 ESP-IDF **6.0.1** 和 `tools/build-runtime.ps1`。只内置小智，其他示例均外部安装。请先读[当前包格式、服务和验证](docs/runtime-applications.zh_CN.md)，包含 ADPCM/DSP 和 Nofrendo CPU 负载。原生入口不重启，退出需要关机再开机，长按 OK 不重启。下方是继承的独立固件基线说明，不是当前插件分支的构建指令或布局。
+
 面向 ESP32-C3 AI Passport 的正式多固件启动器，派生自 alexwwang/meta-pass，
 并兼容 FoloToy 官方小程序安装协议。默认构建使用完整 Zion 产品界面，不再是
 先前的研究探针。
